@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.blog.article.mapper.PublicArticleMapper">
+    <sql id="publicPredicate">
+        a.deleted_at IS NULL
+        AND a.status = 'PUBLISHED'
+        AND a.visibility = 'PUBLIC'
+        AND a.published_at IS NOT NULL
+        AND a.published_at &lt;= CURRENT_TIMESTAMP(3)
+    </sql>
+
+    <sql id="cardColumns">
+        a.id, a.title, a.slug, a.summary,
+        c.name AS category_name, c.slug AS category_slug,
+        a.is_pinned AS pinned, a.reading_minutes, a.view_count,
+        a.published_at, a.updated_at
+    </sql>
+
+    <select id="findArticles" resultType="com.example.blog.article.dto.PublicArticleCard">
+        SELECT DISTINCT <include refid="cardColumns"/>
+        FROM article a
+        LEFT JOIN category c ON c.id = a.category_id AND c.visible = 1
+        <if test="tagSlug != null">
+            INNER JOIN article_tag article_tag_filter ON article_tag_filter.article_id = a.id
+            INNER JOIN tag tag_filter ON tag_filter.id = article_tag_filter.tag_id
+                AND tag_filter.slug = #{tagSlug} AND tag_filter.visible = 1
+        </if>
+        WHERE <include refid="publicPredicate"/>
+        <if test="categorySlug != null">
+            AND c.slug = #{categorySlug}
+        </if>
+        <if test="keyword != null">
+            AND (
+                a.title LIKE CONCAT('%', #{keyword}, '%')
+                OR a.summary LIKE CONCAT('%', #{keyword}, '%')
+                OR a.content_plain LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        ORDER BY a.is_pinned DESC, a.published_at DESC, a.id DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="countArticles" resultType="long">
+        SELECT COUNT(DISTINCT a.id)
+        FROM article a
+        LEFT JOIN category c ON c.id = a.category_id AND c.visible = 1
+        <if test="tagSlug != null">
+            INNER JOIN article_tag article_tag_filter ON article_tag_filter.article_id = a.id
+            INNER JOIN tag tag_filter ON tag_filter.id = article_tag_filter.tag_id
+                AND tag_filter.slug = #{tagSlug} AND tag_filter.visible = 1
+        </if>
+        WHERE <include refid="publicPredicate"/>
+        <if test="categorySlug != null">
+            AND c.slug = #{categorySlug}
+        </if>
+        <if test="keyword != null">
+            AND (
+                a.title LIKE CONCAT('%', #{keyword}, '%')
+                OR a.summary LIKE CONCAT('%', #{keyword}, '%')
+                OR a.content_plain LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+    </select>
+
+    <select id="findBySlug" resultType="com.example.blog.article.dto.PublicArticleRecord">
+        SELECT a.id, a.title, a.slug, a.summary, a.content_html,
+               c.name AS category_name, c.slug AS category_slug, a.is_pinned AS pinned,
+               a.allow_comment, a.word_count, a.reading_minutes, a.view_count,
+               a.meta_title, a.meta_description, a.canonical_url,
+               a.published_at, a.updated_at
+        FROM article a
+        LEFT JOIN category c ON c.id = a.category_id AND c.visible = 1
+        WHERE <include refid="publicPredicate"/>
+          AND a.slug = #{slug}
+        LIMIT 1
+    </select>
+
+    <select id="findArticleTags" resultType="com.example.blog.article.dto.PublicTaxonomyItem">
+        SELECT t.id, t.name, t.slug, t.description, 0 AS article_count
+        FROM tag t
+        INNER JOIN article_tag at ON at.tag_id = t.id
+        WHERE at.article_id = #{articleId} AND t.visible = 1
+        ORDER BY t.sort_order, t.name
+    </select>
+
+    <select id="findCategories" resultType="com.example.blog.article.dto.PublicTaxonomyItem">
+        SELECT c.id, c.name, c.slug, c.description, COUNT(a.id) AS article_count
+        FROM category c
+        LEFT JOIN article a ON a.category_id = c.id
+            AND a.deleted_at IS NULL
+            AND a.status = 'PUBLISHED'
+            AND a.visibility = 'PUBLIC'
+            AND a.published_at &lt;= CURRENT_TIMESTAMP(3)
+        WHERE c.visible = 1
+        GROUP BY c.id
+        ORDER BY c.sort_order, c.name
+    </select>
+
+    <select id="findTags" resultType="com.example.blog.article.dto.PublicTaxonomyItem">
+        SELECT t.id, t.name, t.slug, t.description, COUNT(a.id) AS article_count
+        FROM tag t
+        LEFT JOIN article_tag at ON at.tag_id = t.id
+        LEFT JOIN article a ON a.id = at.article_id
+            AND a.deleted_at IS NULL
+            AND a.status = 'PUBLISHED'
+            AND a.visibility = 'PUBLIC'
+            AND a.published_at &lt;= CURRENT_TIMESTAMP(3)
+        WHERE t.visible = 1
+        GROUP BY t.id
+        ORDER BY t.sort_order, t.name
+    </select>
+
+    <select id="findPrevious" resultType="com.example.blog.article.dto.PublicArticleCard">
+        SELECT <include refid="cardColumns"/>
+        FROM article a
+        LEFT JOIN category c ON c.id = a.category_id AND c.visible = 1
+        WHERE <include refid="publicPredicate"/>
+          AND (a.published_at &lt; #{publishedAt}
+               OR (a.published_at = #{publishedAt} AND a.id &lt; #{id}))
+        ORDER BY a.published_at DESC, a.id DESC
+        LIMIT 1
+    </select>
+
+    <select id="findNext" resultType="com.example.blog.article.dto.PublicArticleCard">
+        SELECT <include refid="cardColumns"/>
+        FROM article a
+        LEFT JOIN category c ON c.id = a.category_id AND c.visible = 1
+        WHERE <include refid="publicPredicate"/>
+          AND (a.published_at &gt; #{publishedAt}
+               OR (a.published_at = #{publishedAt} AND a.id &gt; #{id}))
+        ORDER BY a.published_at, a.id
+        LIMIT 1
+    </select>
+
+    <select id="findRelated" resultType="com.example.blog.article.dto.PublicArticleCard">
+        SELECT DISTINCT <include refid="cardColumns"/>,
+               COUNT(shared_at.tag_id) AS shared_tag_count
+        FROM article a
+        LEFT JOIN category c ON c.id = a.category_id AND c.visible = 1
+        LEFT JOIN article_tag candidate_at ON candidate_at.article_id = a.id
+        LEFT JOIN article_tag shared_at ON shared_at.article_id = #{articleId}
+            AND shared_at.tag_id = candidate_at.tag_id
+        WHERE <include refid="publicPredicate"/>
+          AND a.id != #{articleId}
+        GROUP BY a.id
+        ORDER BY (c.slug = #{categorySlug}) DESC, shared_tag_count DESC, a.published_at DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="findRedirect" resultType="string">
+        SELECT target_path
+        FROM url_redirect
+        WHERE old_slug = #{oldSlug} AND enabled = 1
+        LIMIT 1
+    </select>
+</mapper>

@@ -11,6 +11,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.blog.article.mapper.ArticleMapper;
+import com.example.blog.article.mapper.PublicArticleMapper;
 import com.example.blog.media.mapper.MediaMapper;
 import com.example.blog.taxonomy.mapper.TaxonomyMapper;
 
@@ -26,6 +27,9 @@ class ContentMapperIntegrationTests {
 
     @Autowired
     private ArticleMapper articleMapper;
+
+    @Autowired
+    private PublicArticleMapper publicArticleMapper;
 
     @Test
     void persistsAndReadsCategoryAndTag() {
@@ -95,5 +99,24 @@ class ContentMapperIntegrationTests {
 
         assertEquals(slug, detail.slug());
         assertTrue(page.stream().anyMatch(item -> item.id().equals(id)));
+    }
+
+    @Test
+    void onlyExposesPublishedPublicArticles() {
+        String slug = "public-" + UUID.randomUUID().toString().substring(0, 8);
+        articleMapper.insert(
+                "Public article", slug, "Visible summary", "# Public",
+                "<h1>Public</h1>", "Public", null, "PUBLIC", true, true,
+                1, 1, null, null, null
+        );
+        Long id = articleMapper.lastInsertId();
+
+        assertTrue(publicArticleMapper.findBySlug(slug).isEmpty());
+        articleMapper.publish(id, java.time.LocalDateTime.now(java.time.ZoneOffset.UTC));
+
+        var publicArticle = publicArticleMapper.findBySlug(slug).orElseThrow();
+        assertEquals("Public article", publicArticle.title());
+        assertTrue(publicArticleMapper.findArticles(null, null, null, 0, 20)
+                .stream().anyMatch(item -> item.id().equals(id)));
     }
 }

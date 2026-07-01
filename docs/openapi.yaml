@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
   title: Personal Blog API
-  version: 0.3.0
+  version: 0.4.0
   description: |
-    个人博客 HTTP API 契约。阶段二已提供管理员认证、文章编辑、
-    分类标签和 OSS 媒体闭环；公开内容接口将在阶段三继续扩展。
+    个人博客 HTTP API 契约。已提供管理员认证、内容管理、OSS 媒体闭环，
+    以及阶段三的公开文章、分类、标签、搜索和归档接口。
 servers:
   - url: /api/v1
     description: 当前站点
@@ -36,6 +36,258 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/StatusResponse"
+        default:
+          $ref: "#/components/responses/Problem"
+  /public/home:
+    get:
+      operationId: getPublicHome
+      summary: 获取首页聚合内容
+      tags: [Public]
+      responses:
+        "200":
+          description: 首页文章与分类标签
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicHome"
+        default:
+          $ref: "#/components/responses/Problem"
+  /public/articles:
+    get:
+      operationId: listPublicArticles
+      summary: 查询已发布公开文章
+      tags: [Public]
+      parameters:
+        - name: keyword
+          in: query
+          schema:
+            type: string
+            maxLength: 100
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: tag
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 12
+      responses:
+        "200":
+          description: 公开文章分页
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicArticlePage"
+        default:
+          $ref: "#/components/responses/Problem"
+  /public/articles/{slug}:
+    get:
+      operationId: getPublicArticle
+      summary: 获取公开文章详情
+      tags: [Public]
+      parameters:
+        - $ref: "#/components/parameters/ArticleSlug"
+      responses:
+        "200":
+          description: 公开文章详情
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicArticleDetail"
+        "301":
+          description: slug 已变更
+          headers:
+            Location:
+              schema:
+                type: string
+        default:
+          $ref: "#/components/responses/Problem"
+  /public/articles/{slug}/adjacent:
+    get:
+      operationId: getPublicArticleAdjacent
+      summary: 获取上一篇和下一篇
+      tags: [Public]
+      parameters:
+        - $ref: "#/components/parameters/ArticleSlug"
+      responses:
+        "200":
+          description: 相邻文章
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicArticleNavigation"
+        default:
+          $ref: "#/components/responses/Problem"
+  /public/articles/{slug}/related:
+    get:
+      operationId: getRelatedPublicArticles
+      summary: 获取相关文章
+      tags: [Public]
+      parameters:
+        - $ref: "#/components/parameters/ArticleSlug"
+      responses:
+        "200":
+          description: 最多三篇相关文章
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PublicArticleCard"
+        default:
+          $ref: "#/components/responses/Problem"
+  /public/categories:
+    get:
+      operationId: listPublicCategories
+      summary: 查询公开分类
+      tags: [Public]
+      responses:
+        "200":
+          description: 分类列表与公开文章数
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PublicTaxonomy"
+        default:
+          $ref: "#/components/responses/Problem"
+  /public/categories/{slug}/articles:
+    get:
+      operationId: listPublicCategoryArticles
+      summary: 查询分类下的公开文章
+      tags: [Public]
+      parameters:
+        - $ref: "#/components/parameters/ArticleSlug"
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 12
+      responses:
+        "200":
+          description: 分类文章分页
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicArticlePage"
+        default:
+          $ref: "#/components/responses/Problem"
+  /public/tags:
+    get:
+      operationId: listPublicTags
+      summary: 查询公开标签
+      tags: [Public]
+      responses:
+        "200":
+          description: 标签列表与公开文章数
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PublicTaxonomy"
+        default:
+          $ref: "#/components/responses/Problem"
+  /public/tags/{slug}/articles:
+    get:
+      operationId: listPublicTagArticles
+      summary: 查询标签下的公开文章
+      tags: [Public]
+      parameters:
+        - $ref: "#/components/parameters/ArticleSlug"
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 12
+      responses:
+        "200":
+          description: 标签文章分页
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicArticlePage"
+        default:
+          $ref: "#/components/responses/Problem"
+  /public/archives:
+    get:
+      operationId: getPublicArchives
+      summary: 按年月获取文章归档
+      tags: [Public]
+      responses:
+        "200":
+          description: 月份倒序的文章归档
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PublicArchiveMonth"
+        default:
+          $ref: "#/components/responses/Problem"
+  /public/search:
+    get:
+      operationId: searchPublicArticles
+      summary: 搜索公开文章
+      tags: [Public]
+      parameters:
+        - name: keyword
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 100
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 12
+      responses:
+        "200":
+          description: 搜索结果分页
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicArticlePage"
         default:
           $ref: "#/components/responses/Problem"
   /auth/login:
@@ -608,6 +860,14 @@ components:
       scheme: bearer
       bearerFormat: JWT
   parameters:
+    ArticleSlug:
+      name: slug
+      in: path
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 160
     ArticleId:
       name: id
       in: path
@@ -663,6 +923,183 @@ components:
         timestamp:
           type: string
           format: date-time
+    PublicTaxonomy:
+      type: object
+      additionalProperties: false
+      required: [id, name, slug, articleCount]
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        slug:
+          type: string
+        description:
+          type:
+            - string
+            - "null"
+        articleCount:
+          type: integer
+          format: int64
+          minimum: 0
+    PublicArticleCard:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+        - slug
+        - pinned
+        - readingMinutes
+        - viewCount
+        - publishedAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        slug:
+          type: string
+        summary:
+          type:
+            - string
+            - "null"
+        categoryName:
+          type:
+            - string
+            - "null"
+        categorySlug:
+          type:
+            - string
+            - "null"
+        pinned:
+          type: boolean
+        readingMinutes:
+          type: integer
+          minimum: 0
+        viewCount:
+          type: integer
+          format: int64
+          minimum: 0
+        publishedAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PublicArticlePage:
+      type: object
+      additionalProperties: false
+      required: [items, total, page, pageSize, totalPages]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicArticleCard"
+        total:
+          type: integer
+          format: int64
+          minimum: 0
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 50
+        totalPages:
+          type: integer
+          minimum: 0
+    PublicArticleDetail:
+      allOf:
+        - $ref: "#/components/schemas/PublicArticleCard"
+        - type: object
+          required:
+            - contentHtml
+            - tags
+            - allowComment
+            - wordCount
+          properties:
+            contentHtml:
+              type: string
+            tags:
+              type: array
+              items:
+                $ref: "#/components/schemas/PublicTaxonomy"
+            allowComment:
+              type: boolean
+            wordCount:
+              type: integer
+              minimum: 0
+            metaTitle:
+              type:
+                - string
+                - "null"
+            metaDescription:
+              type:
+                - string
+                - "null"
+            canonicalUrl:
+              type:
+                - string
+                - "null"
+              format: uri
+    PublicArticleNavigation:
+      type: object
+      additionalProperties: false
+      required: [previous, next]
+      properties:
+        previous:
+          oneOf:
+            - $ref: "#/components/schemas/PublicArticleCard"
+            - type: "null"
+        next:
+          oneOf:
+            - $ref: "#/components/schemas/PublicArticleCard"
+            - type: "null"
+    PublicArchiveMonth:
+      type: object
+      additionalProperties: false
+      required: [year, month, articles]
+      properties:
+        year:
+          type: integer
+        month:
+          type: integer
+          minimum: 1
+          maximum: 12
+        articles:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicArticleCard"
+    PublicHome:
+      type: object
+      additionalProperties: false
+      required: [featured, latest, categories, tags, articleCount]
+      properties:
+        featured:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicArticleCard"
+        latest:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicArticleCard"
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicTaxonomy"
+        tags:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicTaxonomy"
+        articleCount:
+          type: integer
+          format: int64
+          minimum: 0
     LoginRequest:
       type: object
       additionalProperties: false

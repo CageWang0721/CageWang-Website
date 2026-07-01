@@ -67,7 +67,7 @@ management:
 info:
   app:
     name: ${spring.application.name}
-    stage: authentication-and-content
+    stage: public-blog
 
 blog:
   auth:
