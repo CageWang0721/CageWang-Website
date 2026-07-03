@@ -1,13 +1,17 @@
 package com.example.blog.media.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -20,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 
+import com.example.blog.media.config.MediaLifecycleProperties;
 import com.example.blog.media.config.OssProperties;
 import com.example.blog.media.mapper.MediaMapper;
 import com.example.blog.media.model.MediaAssetRecord;
@@ -52,8 +57,15 @@ class MediaServiceTests {
                 mediaMapper,
                 objectStorage,
                 new ImageInspector(),
-                properties
+                properties,
+                new MediaLifecycleProperties(
+                        Duration.ofHours(24),
+                        Duration.ofMinutes(1),
+                        Duration.ofMinutes(15),
+                        50
+                )
         );
+        when(objectStorage.configured()).thenReturn(true);
     }
 
     @Test
@@ -75,10 +87,14 @@ class MediaServiceTests {
                 "Cover",
                 "PENDING",
                 0,
+                LocalDateTime.of(2026, 7, 1, 8, 0),
+                0,
+                null,
+                null,
                 1L,
-                LocalDateTime.of(2026, 7, 1, 8, 0)
+                LocalDateTime.of(2026, 7, 1, 8, 0),
+                null
         );
-        when(objectStorage.configured()).thenReturn(true);
         when(mediaMapper.lastInsertId()).thenReturn(9L);
         when(mediaMapper.findById(9L)).thenReturn(Optional.of(record));
         when(objectStorage.publicUrl(record.objectKey()))
@@ -100,6 +116,59 @@ class MediaServiceTests {
                 anyString(),
                 eq("Cover"),
                 eq(1L)
+        );
+    }
+
+    @Test
+    void deletesUnreferencedMediaAndCompletesLifecycle() {
+        MediaAssetRecord record = mediaRecord();
+        when(mediaMapper.findById(9L)).thenReturn(Optional.of(record));
+        when(mediaMapper.claimManualDelete(eq(9L), any(), any())).thenReturn(1);
+
+        mediaService.delete(9L);
+
+        verify(objectStorage).delete(record.objectKey());
+        verify(mediaMapper).markDeleteComplete(9L);
+    }
+
+    @Test
+    void schedulesRetryWhenOssDeletionFails() {
+        MediaAssetRecord record = mediaRecord();
+        when(mediaMapper.findById(9L)).thenReturn(Optional.of(record));
+        when(mediaMapper.claimManualDelete(eq(9L), any(), any())).thenReturn(1);
+        doThrow(new IllegalStateException("temporary OSS failure"))
+                .when(objectStorage).delete(record.objectKey());
+
+        assertThrows(IllegalStateException.class, () -> mediaService.delete(9L));
+
+        verify(mediaMapper).markDeleteFailed(
+                eq(9L),
+                any(LocalDateTime.class),
+                eq("temporary OSS failure")
+        );
+    }
+
+    private MediaAssetRecord mediaRecord() {
+        return new MediaAssetRecord(
+                9L,
+                "blog/test/2026/07/image.png",
+                "cover.png",
+                "image/png",
+                "png",
+                100,
+                24,
+                12,
+                "0".repeat(64),
+                "Cover",
+                "PENDING",
+                0,
+                LocalDateTime.of(2026, 7, 1, 8, 0),
+                0,
+                null,
+                null,
+                1L,
+                LocalDateTime.of(2026, 7, 1, 8, 0),
+                null
         );
     }
 }

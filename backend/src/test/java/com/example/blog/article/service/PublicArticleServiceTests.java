@@ -4,7 +4,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -19,18 +23,41 @@ import com.example.blog.article.dto.PublicArticleRecord;
 import com.example.blog.article.dto.PublicTaxonomyItem;
 import com.example.blog.article.mapper.PublicArticleMapper;
 import com.example.blog.shared.error.ApiException;
+import com.example.blog.shared.cache.PublicContentCache;
+import com.example.blog.shared.config.RuntimeProperties;
+import com.fasterxml.jackson.core.type.TypeReference;
+import java.util.function.Supplier;
 
 @ExtendWith(MockitoExtension.class)
 class PublicArticleServiceTests {
 
     @Mock
     private PublicArticleMapper mapper;
+    @Mock
+    private PublicContentCache cache;
+    @Mock
+    private RuntimeProperties runtime;
 
     private PublicArticleService service;
 
     @BeforeEach
     void setUp() {
-        service = new PublicArticleService(mapper);
+        lenient().when(runtime.articleCacheTtl()).thenReturn(Duration.ofMinutes(10));
+        lenient().when(runtime.listCacheTtl()).thenReturn(Duration.ofMinutes(5));
+        lenient().when(runtime.taxonomyCacheTtl()).thenReturn(Duration.ofMinutes(30));
+        lenient().when(cache.get(
+                anyString(),
+                any(Duration.class),
+                any(Class.class),
+                any()
+        )).thenAnswer(invocation -> ((Supplier<?>) invocation.getArgument(3)).get());
+        lenient().when(cache.get(
+                anyString(),
+                any(Duration.class),
+                any(TypeReference.class),
+                any()
+        )).thenAnswer(invocation -> ((Supplier<?>) invocation.getArgument(3)).get());
+        service = new PublicArticleService(mapper, cache, runtime);
     }
 
     @Test

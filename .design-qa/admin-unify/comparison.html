@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cloud Command Bar · Design QA</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: #0f1725; color: #eef4fb; font: 14px/1.4 "Segoe UI", sans-serif; }
+    main { width: 1440px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 16px; }
+    figure { margin: 0; overflow: hidden; background: #fff; border: 1px solid #536174; border-radius: 12px; }
+    figcaption { height: 42px; display: flex; align-items: center; padding: 0 16px; color: #eef4fb; background: #172235; font-weight: 600; }
+    img { width: 100%; display: block; }
+    .focus img { height: 170px; object-fit: cover; object-position: top; }
+  </style>
+</head>
+<body>
+  <main>
+    <figure>
+      <figcaption>视觉目标 · 云端命令栏</figcaption>
+      <img src="./cloud-command-bar-target.png" alt="选定的云端命令栏设计稿">
+    </figure>
+    <figure>
+      <figcaption>真实实现 · 管理后台总览</figcaption>
+      <img src="./admin-dashboard-final.png" alt="真实运行的管理后台总览">
+    </figure>
+    <figure class="focus">
+      <figcaption>视觉目标 · 命令栏细节</figcaption>
+      <img src="./cloud-command-bar-target.png" alt="选定设计稿的命令栏细节">
+    </figure>
+    <figure class="focus">
+      <figcaption>真实实现 · 命令栏细节</figcaption>
+      <img src="./admin-dashboard-final.png" alt="真实实现的命令栏细节">
+    </figure>
+  </main>
+</body>
+</html>

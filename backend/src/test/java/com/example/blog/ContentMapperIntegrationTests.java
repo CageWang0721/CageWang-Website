@@ -1,8 +1,11 @@
 package com.example.blog;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -12,12 +15,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.blog.article.mapper.ArticleMapper;
 import com.example.blog.article.mapper.PublicArticleMapper;
+import com.example.blog.comment.mapper.CommentMapper;
 import com.example.blog.media.mapper.MediaMapper;
 import com.example.blog.taxonomy.mapper.TaxonomyMapper;
 
 @SpringBootTest
 @Transactional
-class ContentMapperIntegrationTests {
+class ContentMapperIntegrationTests extends ContainerIntegrationTest {
 
     @Autowired
     private TaxonomyMapper taxonomyMapper;
@@ -30,6 +34,9 @@ class ContentMapperIntegrationTests {
 
     @Autowired
     private PublicArticleMapper publicArticleMapper;
+
+    @Autowired
+    private CommentMapper commentMapper;
 
     @Test
     void persistsAndReadsCategoryAndTag() {
@@ -70,6 +77,62 @@ class ContentMapperIntegrationTests {
         assertEquals(objectKey, media.objectKey());
         assertEquals(0, media.referenceCount());
         assertEquals("PENDING", media.status());
+    }
+
+    @Test
+    void reconcilesMediaReferencesAndMarksOrphans() {
+        String objectKey = "blog/test/" + UUID.randomUUID() + ".png";
+        mediaMapper.insert(
+                objectKey,
+                "lifecycle.png",
+                "image/png",
+                "png",
+                128,
+                16,
+                8,
+                "1".repeat(64),
+                "lifecycle image",
+                null
+        );
+        Long mediaId = mediaMapper.lastInsertId();
+        String slug = "media-lifecycle-" + UUID.randomUUID().toString().substring(0, 8);
+        articleMapper.insert(
+                "Media lifecycle",
+                slug,
+                null,
+                "![image](https://cdn.example.com/" + objectKey + ")",
+                "<p>image</p>",
+                "image",
+                null,
+                "PUBLIC",
+                false,
+                true,
+                1,
+                1,
+                null,
+                null,
+                null
+        );
+        Long articleId = articleMapper.lastInsertId();
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
+
+        mediaMapper.reconcileReferences(now);
+
+        var active = mediaMapper.findById(mediaId).orElseThrow();
+        assertEquals("ACTIVE", active.status());
+        assertEquals(1, active.referenceCount());
+        assertNull(active.unreferencedAt());
+
+        articleMapper.softDelete(articleId);
+        mediaMapper.reconcileReferences(now.plusMinutes(1));
+        mediaMapper.markOrphans(now.plusMinutes(2));
+
+        var orphan = mediaMapper.findById(mediaId).orElseThrow();
+        assertEquals("ORPHAN", orphan.status());
+        assertEquals(0, orphan.referenceCount());
+        assertTrue(mediaMapper.findDeleteCandidates(now.plusMinutes(2), 10)
+                .stream()
+                .anyMatch(item -> item.id().equals(mediaId)));
     }
 
     @Test
@@ -118,5 +181,30 @@ class ContentMapperIntegrationTests {
         assertEquals("Public article", publicArticle.title());
         assertTrue(publicArticleMapper.findArticles(null, null, null, 0, 20)
                 .stream().anyMatch(item -> item.id().equals(id)));
+    }
+
+    @Test
+    void persistsMapsAndSoftDeletesACommentThread() {
+        String hash = "a".repeat(64);
+        commentMapper.insert(
+                null, null, null, "MESSAGE", "Root", "<p>Root</p>",
+                "Reader", null, null, hash, "APPROVED", false, false,
+                "b".repeat(64), "integration-test"
+        );
+        Long rootId = commentMapper.lastInsertId();
+        commentMapper.insert(
+                null, rootId, rootId, "MESSAGE", "Reply", "<p>Reply</p>",
+                "Author", null, null, "c".repeat(64), "APPROVED", true, false,
+                "d".repeat(64), "integration-test"
+        );
+        Long replyId = commentMapper.lastInsertId();
+
+        assertEquals("Reader", commentMapper.findById(rootId).orElseThrow().nickname());
+        assertEquals(rootId, commentMapper.findById(replyId).orElseThrow().rootId());
+
+        commentMapper.softDelete(rootId);
+
+        assertTrue(commentMapper.findById(rootId).isEmpty());
+        assertTrue(commentMapper.findById(replyId).isEmpty());
     }
 }

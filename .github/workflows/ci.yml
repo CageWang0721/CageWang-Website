@@ -5,48 +5,22 @@ on:
   push:
     branches:
       - main
+  schedule:
+    - cron: "30 18 * * 0"
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend:
-    name: Backend
+    name: Backend tests
     runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:9.7
-        env:
-          MYSQL_DATABASE: personal_blog
-          MYSQL_USER: blog
-          MYSQL_PASSWORD: blog_ci_password
-          MYSQL_ROOT_PASSWORD: root_ci_password
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd "mysqladmin ping -h localhost -uroot -proot_ci_password --silent"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 12
-      redis:
-        image: redis:8.8-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 12
-    env:
-      MYSQL_HOST: 127.0.0.1
-      MYSQL_PORT: 3306
-      MYSQL_DATABASE: personal_blog
-      MYSQL_USERNAME: blog
-      MYSQL_PASSWORD: blog_ci_password
-      REDIS_HOST: 127.0.0.1
-      REDIS_PORT: 6379
-      REDIS_USERNAME: default
-      REDIS_PASSWORD: ""
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -55,13 +29,21 @@ jobs:
           java-version: "25"
           cache: maven
           cache-dependency-path: backend/pom.xml
-      - name: Verify backend
+      - name: Verify with disposable MySQL and Redis
         working-directory: backend
         run: mvn --batch-mode --no-transfer-progress verify
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: backend/target/surefire-reports
+          if-no-files-found: ignore
 
   frontend:
-    name: Frontend
+    name: Frontend quality
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -70,21 +52,140 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+      - name: Unit tests
+        run: npm test
       - name: Type check
         run: npm run typecheck
+      - name: Validate OpenAPI contract
+        run: npm run test:openapi
       - name: Build applications
         run: npm run build
 
   compose:
     name: Container build
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     needs:
       - backend
       - frontend
     steps:
       - uses: actions/checkout@v4
-      - name: Validate Compose file
+      - name: Validate development Compose
         run: docker compose config --quiet
+      - name: Validate production Compose
+        run: >-
+          docker compose
+          --env-file .env.production.example
+          -f docker-compose.yml
+          -f docker-compose.prod.yml
+          config --quiet
       - name: Build application images
         run: docker compose build
 
+  security:
+    name: Vulnerability scan
+    runs-on: ubuntu-latest
+    needs:
+      - backend
+      - frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aquasecurity/trivy-action@0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+  browser:
+    name: Browser journeys and Lighthouse
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    needs:
+      - compose
+    env:
+      COMPOSE_PROJECT_NAME: personal-blog-e2e
+      MYSQL_PASSWORD: e2e_mysql_password
+      MYSQL_ROOT_PASSWORD: e2e_mysql_root_password
+      REDIS_PASSWORD: e2e_redis_password
+      JWT_SECRET: e2e-jwt-secret-at-least-thirty-two-characters-long
+      ADMIN_INITIAL_USERNAME: e2e-admin
+      ADMIN_INITIAL_PASSWORD: E2e-Only-Password-2026!
+      ADMIN_ALLOWED_ORIGINS: http://localhost,http://admin.localhost
+      E2E_ADMIN_USERNAME: e2e-admin
+      E2E_ADMIN_PASSWORD: E2e-Only-Password-2026!
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start isolated application
+        run: docker compose up --build -d --wait
+      - name: Run browser journeys
+        run: npm run test:e2e
+      - name: Run Lighthouse budgets
+        run: npm run test:lighthouse
+      - name: Collect service logs
+        if: failure()
+        run: |
+          mkdir -p test-results
+          docker compose logs --no-color > test-results/compose.log
+      - name: Stop isolated application
+        if: always()
+        run: docker compose down -v --remove-orphans
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-reports
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+
+  performance:
+    name: k6 performance baseline
+    if: github.event_name == 'push' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs:
+      - compose
+    env:
+      COMPOSE_PROJECT_NAME: personal-blog-performance
+      MYSQL_PASSWORD: perf_mysql_password
+      MYSQL_ROOT_PASSWORD: perf_mysql_root_password
+      REDIS_PASSWORD: perf_redis_password
+      JWT_SECRET: perf-jwt-secret-at-least-thirty-two-characters-long
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start isolated application
+        run: docker compose up --build -d --wait
+      - name: Seed a stable article detail fixture
+        run: >-
+          docker compose exec -T mysql sh -c
+          'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE"'
+          < tests/performance/seed.sql
+      - name: Run five-times-peak baseline
+        run: >-
+          docker run --rm --network host
+          -e BASE_URL=http://127.0.0.1
+          -e ARTICLE_SLUG=performance-baseline
+          -e VUS=5
+          -e DURATION=30s
+          -v "$PWD/tests/performance:/scripts:ro"
+          grafana/k6:1.7.1
+          run /scripts/blog.js
+      - name: Collect service logs
+        if: failure()
+        run: docker compose logs --no-color
+      - name: Stop isolated application
+        if: always()
+        run: docker compose down -v --remove-orphans

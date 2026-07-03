@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
   title: Personal Blog API
-  version: 0.4.0
+  version: 0.6.0
   description: |
-    个人博客 HTTP API 契约。已提供管理员认证、内容管理、OSS 媒体闭环，
-    以及阶段三的公开文章、分类、标签、搜索和归档接口。
+    个人博客 HTTP API 契约。已提供内容、互动与管理后台，并补齐阶段五的
+    Redis 缓存、浏览统计、统一限流、一次性验证码、安全头和隐私治理。
 servers:
   - url: /api/v1
     description: 当前站点
@@ -290,6 +290,159 @@ paths:
                 $ref: "#/components/schemas/PublicArticlePage"
         default:
           $ref: "#/components/responses/Problem"
+  /public/articles/{articleId}/comments:
+    get:
+      operationId: listPublicArticleComments
+      summary: 获取已审核文章评论树
+      tags: [Public]
+      parameters:
+        - $ref: "#/components/parameters/PublicArticleId"
+      responses:
+        "200":
+          description: 两级评论树
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PublicComment"
+        default:
+          $ref: "#/components/responses/Problem"
+    post:
+      operationId: submitArticleComment
+      summary: 提交文章评论或回复
+      tags: [Public]
+      parameters:
+        - $ref: "#/components/parameters/PublicArticleId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentRequest"
+      responses:
+        "202":
+          description: 已进入审核队列
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentSubmitResponse"
+        default:
+          $ref: "#/components/responses/Problem"
+  /public/articles/{articleId}/views:
+    post:
+      operationId: recordArticleView
+      summary: 记录一次文章浏览
+      description: 浏览量先写入 Redis 计数器，再由后台任务批量同步到数据库。
+      tags: [Public]
+      parameters:
+        - $ref: "#/components/parameters/PublicArticleId"
+      responses:
+        "202":
+          description: 浏览事件已接收
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ViewCountResponse"
+        default:
+          $ref: "#/components/responses/Problem"
+  /public/articles/{articleId}/interaction:
+    get:
+      operationId: getArticleInteraction
+      summary: 获取文章点赞和评论状态
+      tags: [Public]
+      parameters:
+        - $ref: "#/components/parameters/PublicArticleId"
+      responses:
+        "200":
+          description: 当前匿名访客互动状态
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InteractionState"
+        default:
+          $ref: "#/components/responses/Problem"
+  /public/articles/{articleId}/likes:
+    post:
+      operationId: likeArticle
+      summary: 点赞文章
+      tags: [Public]
+      parameters:
+        - $ref: "#/components/parameters/PublicArticleId"
+      responses:
+        "200":
+          description: 点赞后互动状态
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InteractionState"
+        default:
+          $ref: "#/components/responses/Problem"
+    delete:
+      operationId: unlikeArticle
+      summary: 取消点赞
+      tags: [Public]
+      parameters:
+        - $ref: "#/components/parameters/PublicArticleId"
+      responses:
+        "200":
+          description: 取消后互动状态
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InteractionState"
+        default:
+          $ref: "#/components/responses/Problem"
+  /public/messages:
+    get:
+      operationId: listPublicMessages
+      summary: 获取已审核留言
+      tags: [Public]
+      responses:
+        "200":
+          description: 留言树
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PublicComment"
+        default:
+          $ref: "#/components/responses/Problem"
+    post:
+      operationId: submitMessage
+      summary: 提交留言或回复
+      tags: [Public]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CommentRequest"
+      responses:
+        "202":
+          description: 已进入审核队列
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CommentSubmitResponse"
+        default:
+          $ref: "#/components/responses/Problem"
+  /public/captcha:
+    get:
+      operationId: issueCaptcha
+      summary: 获取一次性算术验证码
+      description: 验证码默认五分钟过期，校验成功或失败后都会失效。
+      tags: [Public]
+      responses:
+        "200":
+          description: 新验证码挑战
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaptchaChallenge"
+        default:
+          $ref: "#/components/responses/Problem"
   /auth/login:
     post:
       operationId: login
@@ -384,6 +537,137 @@ paths:
       responses:
         "204":
           description: 密码修改成功
+        default:
+          $ref: "#/components/responses/Problem"
+  /admin/dashboard:
+    get:
+      operationId: getAdminDashboard
+      summary: 获取后台数据看板
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 内容、互动、访问、通知与健康汇总
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+        default:
+          $ref: "#/components/responses/Problem"
+  /admin/comments:
+    get:
+      operationId: listAdminComments
+      summary: 分页查询评论与留言
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, APPROVED, REJECTED, SPAM, HIDDEN]
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [ARTICLE, MESSAGE]
+        - name: keyword
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: 互动审核分页
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCommentPage"
+        default:
+          $ref: "#/components/responses/Problem"
+  /admin/comments/{id}/approve:
+    post:
+      operationId: approveComment
+      summary: 审核通过评论或留言
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "204":
+          description: 审核成功
+        default:
+          $ref: "#/components/responses/Problem"
+  /admin/comments/{id}/reject:
+    post:
+      operationId: rejectComment
+      summary: 拒绝评论或留言
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "204":
+          description: 已拒绝
+        default:
+          $ref: "#/components/responses/Problem"
+  /admin/comments/{id}/reply:
+    post:
+      operationId: replyComment
+      summary: 管理员回复评论或留言
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                  minLength: 2
+                  maxLength: 2000
+      responses:
+        "200":
+          description: 已发布管理员回复
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicComment"
+        default:
+          $ref: "#/components/responses/Problem"
+  /admin/operation-logs:
+    get:
+      operationId: listOperationLogs
+      summary: 查询管理操作日志
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: 操作日志分页
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OperationLogPage"
         default:
           $ref: "#/components/responses/Problem"
   /admin/articles:
@@ -869,6 +1153,22 @@ components:
         minLength: 1
         maxLength: 160
     ArticleId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    PublicArticleId:
+      name: articleId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+        minimum: 1
+    ResourceId:
       name: id
       in: path
       required: true
@@ -1499,6 +1799,260 @@ components:
           type: integer
         pageSize:
           type: integer
+    CommentRequest:
+      type: object
+      additionalProperties: false
+      required: [nickname, content, notifyOnReply]
+      properties:
+        nickname:
+          type: string
+          minLength: 2
+          maxLength: 64
+        email:
+          type:
+            - string
+            - "null"
+          format: email
+          maxLength: 160
+        website:
+          type:
+            - string
+            - "null"
+          format: uri
+          maxLength: 300
+        content:
+          type: string
+          minLength: 2
+          maxLength: 2000
+        parentId:
+          type:
+            - integer
+            - "null"
+          format: int64
+        notifyOnReply:
+          type: boolean
+        captchaId:
+          type:
+            - string
+            - "null"
+          maxLength: 64
+          description: 首次互动或高风险内容必须提供的一次性验证码 ID
+        captchaAnswer:
+          type:
+            - string
+            - "null"
+          maxLength: 16
+          description: 算术验证码答案
+    CaptchaChallenge:
+      type: object
+      additionalProperties: false
+      required: [id, question, expiresAt]
+      properties:
+        id:
+          type: string
+        question:
+          type: string
+          example: 7 + 5 = ?
+        expiresAt:
+          type: string
+          format: date-time
+    ViewCountResponse:
+      type: object
+      additionalProperties: false
+      required: [accepted]
+      properties:
+        accepted:
+          type: boolean
+    PublicComment:
+      type: object
+      additionalProperties: false
+      required: [id, nickname, contentHtml, adminReply, createdAt, replies]
+      properties:
+        id:
+          type: integer
+          format: int64
+        parentId:
+          type:
+            - integer
+            - "null"
+          format: int64
+        nickname:
+          type: string
+        contentHtml:
+          type: string
+        adminReply:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        replies:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicComment"
+    CommentSubmitResponse:
+      type: object
+      additionalProperties: false
+      required: [id, status, message]
+      properties:
+        id:
+          type: integer
+          format: int64
+        status:
+          type: string
+          const: PENDING
+        message:
+          type: string
+    InteractionState:
+      type: object
+      additionalProperties: false
+      required: [likeCount, commentCount, liked]
+      properties:
+        likeCount:
+          type: integer
+          format: int64
+        commentCount:
+          type: integer
+          format: int64
+        liked:
+          type: boolean
+    AdminComment:
+      type: object
+      required: [id, type, contentMarkdown, nickname, status, adminReply, createdAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+        articleId:
+          type:
+            - integer
+            - "null"
+          format: int64
+        articleTitle:
+          type:
+            - string
+            - "null"
+        type:
+          type: string
+          enum: [ARTICLE, MESSAGE]
+        contentMarkdown:
+          type: string
+        nickname:
+          type: string
+        status:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED, SPAM, HIDDEN]
+        adminReply:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+    AdminCommentPage:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminComment"
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+    OperationLog:
+      type: object
+      required: [id, module, action, result, createdAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+        operatorName:
+          type:
+            - string
+            - "null"
+        module:
+          type: string
+        action:
+          type: string
+        targetId:
+          type:
+            - string
+            - "null"
+        result:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    OperationLogPage:
+      type: object
+      required: [items, total, page, pageSize]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OperationLog"
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+    Dashboard:
+      type: object
+      required:
+        - articles
+        - publishedArticles
+        - comments
+        - pendingComments
+        - messages
+        - likes
+        - views30d
+        - visitors30d
+        - trend
+        - popularArticles
+        - recentOperations
+        - pendingNotifications
+        - mailConfigured
+        - serviceStatus
+        - cacheHits
+        - cacheMisses
+        - cacheErrors
+        - cacheHitRate
+      properties:
+        articles: { type: integer, format: int64 }
+        publishedArticles: { type: integer, format: int64 }
+        comments: { type: integer, format: int64 }
+        pendingComments: { type: integer, format: int64 }
+        messages: { type: integer, format: int64 }
+        likes: { type: integer, format: int64 }
+        views30d: { type: integer, format: int64 }
+        visitors30d: { type: integer, format: int64 }
+        trend:
+          type: array
+          items:
+            type: object
+        popularArticles:
+          type: array
+          items:
+            type: object
+        recentOperations:
+          type: array
+          items:
+            $ref: "#/components/schemas/OperationLog"
+        pendingNotifications: { type: integer, format: int64 }
+        mailConfigured: { type: boolean }
+        serviceStatus: { type: string }
+        cacheHits: { type: integer, format: int64 }
+        cacheMisses: { type: integer, format: int64 }
+        cacheErrors: { type: integer, format: int64 }
+        cacheHitRate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
     ProblemDetail:
       type: object
       required:

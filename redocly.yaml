@@ -1,0 +1,13 @@
+apis:
+  blog@v1:
+    root: docs/openapi.yaml
+
+extends:
+  - minimal
+
+rules:
+  no-unresolved-refs: error
+  no-unused-components: off
+  operation-operationId: error
+  operation-2xx-response: error
+  security-defined: off

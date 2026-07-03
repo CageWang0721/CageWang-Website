@@ -24,6 +24,20 @@ docker compose ps
 Bucket 与 `OSS_OBJECT_PREFIX` 前缀读写的 RAM 用户；未配置时其他功能仍可正常启动，
 管理端会明确显示 OSS 不可用。
 
+媒体生命周期任务默认每 5 分钟运行一次：同步文章引用状态，将连续 24 小时未引用
+的媒体标记为孤儿并清理；OSS 删除失败会以 1、2、4、8、16、32、64 分钟退避重试。
+可通过 `OSS_ORPHAN_GRACE_PERIOD`、`OSS_DELETE_RETRY_BASE_DELAY`、
+`OSS_STALE_DELETE_TIMEOUT`、`OSS_CLEANUP_BATCH_SIZE` 和
+`OSS_CLEANUP_INTERVAL` 调整。
+
+公开内容缓存和浏览统计默认使用 Redis。可通过 `CACHE_ENABLED` 临时关闭内容缓存；
+`ARTICLE_CACHE_TTL`、`LIST_CACHE_TTL`、`TAXONOMY_CACHE_TTL` 控制基础 TTL，
+实际写入时会自动加入随机抖动。`STATISTICS_FLUSH_INTERVAL` 控制浏览量写回周期。
+
+如需启用回复邮件，配置 `MAIL_ENABLED=true` 及 `MAIL_HOST`、`MAIL_PORT`、
+`MAIL_USERNAME`、`MAIL_PASSWORD`、`MAIL_FROM`。未启用时邮件健康检查不会影响
+整体健康状态，Outbox 事件会保留等待配置。
+
 ## 常用检查
 
 ```powershell
@@ -38,8 +52,10 @@ docker compose exec redis redis-cli -a $env:REDIS_PASSWORD ping
 - `http://localhost/`：Nuxt 公开站
 - `http://admin.localhost/`：Vite 管理端
 - `http://localhost/api/v1/status`：后端状态接口
+- `http://localhost/docs`：Swagger 在线接口文档
 - `http://admin.localhost/login`：管理员登录
 - `http://localhost/actuator/health`：聚合健康状态
+- `http://localhost/privacy`：访客隐私说明
 
 若端口 80 被占用，在 `.env` 设置 `HTTP_PORT=8088`，然后使用 `http://localhost:8088/`。
 
@@ -75,3 +91,9 @@ npm run dev:admin
 - 登录成功但刷新失败：确认浏览器允许同站 Cookie，且 `ADMIN_ALLOWED_ORIGINS` 包含管理端的完整 Origin。
 - 媒体页提示 OSS 未配置：检查上述 OSS 环境变量，并确认 AccessKey 已授权
   `PutObject`、`GetObject`、`DeleteObject` 和 `HeadObject` 的最小权限。
+
+## 阶段六入口
+
+- 本地和 CI 测试命令见 [测试与质量门禁](testing.md)。
+- TLS 生产发布、应用回退、备份与恢复演练见
+  [生产部署、备份与恢复](production.md)。
