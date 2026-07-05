@@ -47,4 +47,28 @@
             search_count = search_count + #{searchDelta},
             referral_count = referral_count + #{referralDelta}
     </insert>
+
+    <select id="findSiteViews" resultType="long">
+        SELECT COALESCE(MAX(view_count), 0)
+        FROM site_visit_daily
+        WHERE stat_date = #{statDate}
+    </select>
+
+    <select id="findSiteVisitors" resultType="long">
+        SELECT COALESCE(MAX(unique_count), 0)
+        FROM site_visit_daily
+        WHERE stat_date = #{statDate}
+    </select>
+
+    <select id="sumSiteViewsBefore" resultType="long">
+        SELECT COALESCE(SUM(view_count), 0)
+        FROM site_visit_daily
+        WHERE stat_date &lt; #{statDate}
+    </select>
+
+    <select id="sumSiteVisitorsBefore" resultType="long">
+        SELECT COALESCE(SUM(unique_count), 0)
+        FROM site_visit_daily
+        WHERE stat_date &lt; #{statDate}
+    </select>
 </mapper>

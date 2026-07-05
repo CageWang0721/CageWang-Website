@@ -1,24 +1,24 @@
 <script setup lang="ts">
 const api = useBlogApi()
-const { data, error } = await useAsyncData('home', () => api.home())
+const { data, error, refresh } = await useAsyncData('home', () => api.home())
 const avatarSrc = '/images/cagewang-avatar.png'
+const siteStats = useSiteStatistics()
+
+const refreshHome = () => {
+  void refresh()
+}
+
+onMounted(() => {
+  window.addEventListener('focus', refreshHome)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('focus', refreshHome)
+})
 
 const shownArticles = computed(() => data.value?.latest.slice(0, 8) || [])
 const categoryCount = computed(() => data.value?.categories.length || 0)
 const tagCount = computed(() => data.value?.tags.length || 0)
-const siteStats = computed(() => import.meta.dev && !data.value?.latest.length
-  ? {
-      onlineVisitors: 1,
-      todayViews: 8,
-      totalViews: 9966,
-      totalVisitors: 680
-    }
-  : {
-      onlineVisitors: 0,
-      todayViews: 0,
-      totalViews: 0,
-      totalVisitors: 0
-    })
 
 useSeoMeta({
   title: 'CageWang‘s Blog · 记录技术、生活与灵光',

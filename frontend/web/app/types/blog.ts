@@ -57,6 +57,13 @@ export interface HomeResponse {
   articleCount: number
 }
 
+export interface SiteStatistics {
+  onlineVisitors: number
+  todayViews: number
+  totalViews: number
+  totalVisitors: number
+}
+
 export interface ArchiveMonth {
   year: number
   month: number

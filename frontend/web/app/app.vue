@@ -1,7 +1,10 @@
 <script setup lang="ts">
 const route = useRoute()
 const theme = useTheme()
+const api = useBlogApi()
+const siteStats = useSiteStatistics()
 const scrolled = ref(false)
+let statisticsTimer: number | undefined
 
 const links = [
   { label: '首页', to: '/', icon: 'icon-zhuye' },
@@ -18,12 +21,28 @@ const updateHeader = () => {
   scrolled.value = window.scrollY > 48
 }
 
+const refreshStatistics = () => {
+  if (document.visibilityState !== 'visible') return
+  void api.statistics()
+    .then((statistics) => {
+      siteStats.value = statistics
+    })
+    .catch(() => undefined)
+}
+
 onMounted(() => {
   updateHeader()
+  refreshStatistics()
+  statisticsTimer = window.setInterval(refreshStatistics, 60_000)
   window.addEventListener('scroll', updateHeader, { passive: true })
+  window.addEventListener('focus', refreshStatistics)
 })
 
-onUnmounted(() => window.removeEventListener('scroll', updateHeader))
+onUnmounted(() => {
+  if (statisticsTimer !== undefined) window.clearInterval(statisticsTimer)
+  window.removeEventListener('scroll', updateHeader)
+  window.removeEventListener('focus', refreshStatistics)
+})
 </script>
 
 <template>

@@ -27,4 +27,12 @@ public interface ViewStatisticsMapper {
             @Param("searchDelta") long searchDelta,
             @Param("referralDelta") long referralDelta
     );
+
+    long findSiteViews(@Param("statDate") LocalDate statDate);
+
+    long findSiteVisitors(@Param("statDate") LocalDate statDate);
+
+    long sumSiteViewsBefore(@Param("statDate") LocalDate statDate);
+
+    long sumSiteVisitorsBefore(@Param("statDate") LocalDate statDate);
 }
