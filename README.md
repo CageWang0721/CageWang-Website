@@ -1,28 +1,54 @@
 # Wineclouds’Blog
 
-一个面向个人创作、内容管理与长期运维的全栈博客系统。
+一个面向个人创作、内容管理与长期维护的全栈博客系统。
 
-项目由 **Nuxt 4 SSR 公开站**、**Vue 3 管理端**和 **Spring Boot API** 组成。公开站采用 Windows 11 Fluent Design 风格，以响应式毛玻璃界面、明暗主题和沉浸式壁纸呈现内容；管理端覆盖文章、分类、标签、评论、媒体、统计与审计等日常工作流。
+Wineclouds’Blog 由 Nuxt SSR 公开站、Vue 管理端和 Spring Boot API 组成。它不仅提供文章展示，也覆盖写作、发布、互动、媒体、统计与审计等完整内容工作流。
 
-## 项目亮点
 
-- **统一的 Fluent 视觉体验**：毛玻璃模块、明暗主题、响应式布局、移动端导航与减少动画偏好支持。
-- **完整的内容工作流**：文章草稿、自动保存、Markdown 预览、定时发布、撤回、归档、置顶与乐观锁。
-- **丰富的内容发现能力**：分类、标签、搜索、时间归档、上一篇/下一篇、RSS、Sitemap 与 robots.txt。
-- **公开互动与后台治理**：匿名点赞、两级评论、重复提交防护、评论审核、垃圾标记和管理员回复。
-- **媒体与通知能力**：阿里云 OSS 上传、图片引用保护、孤儿媒体清理和邮件通知 Outbox。
-- **可观测且可维护**：PV/UV 统计、热门文章、管理仪表盘、操作日志、健康检查与 Prometheus 指标。
-- **面向生产的安全设计**：JWT、Refresh Cookie Rotation、会话撤销、限流、验证码、CSP、HSTS 和敏感信息保护。
-- **可复现部署**：Docker Compose、Nginx 网关、Flyway 迁移、版本化镜像、加密备份与恢复演练脚本。
+## 项目概览
+
+公开站采用 Windows 11 Fluent Design 风格，通过响应式毛玻璃界面、明暗主题和沉浸式背景呈现内容。管理端用于处理日常内容运营，后端负责鉴权、数据访问、缓存、统计和外部服务集成。
+
+### 阅读体验
+
+- Nuxt SSR 页面与响应式布局
+- 文章、分类、标签、搜索和时间归档
+- 上一篇/下一篇、RSS、Sitemap 和 robots.txt
+- 明暗主题、移动端导航和减少动画偏好支持
+- GitHub、抖音、B站和小红书社交入口，可通过本地环境变量配置
+
+### 内容运营
+
+- 草稿、自动保存、Markdown 预览和定时发布
+- 撤回、归档、置顶与乐观锁
+- 分类、标签、评论和媒体管理
+- 评论审核、垃圾标记与管理员回复
+- 仪表盘、访问统计和操作日志
+
+### 平台能力
+
+- 匿名点赞与两级评论
+- MySQL 持久化与 Flyway 数据库迁移
+- Redis 缓存、会话与访问统计
+- 阿里云 OSS 媒体上传和生命周期管理
+- SMTP 评论回复通知 Outbox
+
+### 安全与运维
+
+- JWT Access Token 与 Refresh Cookie Rotation
+- 会话撤销、接口限流和验证码
+- CSP、HSTS 与安全响应头
+- Actuator 健康检查与 Prometheus 指标
+- Nginx 网关配置、数据库备份和恢复脚本
 
 ## 系统架构
 
 ```mermaid
 flowchart LR
-    Visitor["访客 / 管理员"] --> Nginx["Nginx Gateway"]
-    Nginx --> Web["Nuxt 4 Web"]
-    Nginx --> Admin["Vue 3 Admin"]
-    Nginx --> API["Spring Boot API"]
+    Visitor["访客 / 管理员"] --> Gateway["Nginx Gateway"]
+    Gateway --> Web["Nuxt Web"]
+    Gateway --> Admin["Vue Admin"]
+    Gateway --> API["Spring Boot API"]
     Web --> API
     Admin --> API
     API --> MySQL[("MySQL")]
@@ -31,108 +57,149 @@ flowchart LR
     API -. 可选 .-> SMTP["SMTP"]
 ```
 
-| 模块 | 技术栈 | 职责 |
+| 模块 | 主要技术 | 职责 |
 | --- | --- | --- |
-| 公开站 | Nuxt 4、Vue 3、TypeScript | SSR 内容展示、互动、SEO 与订阅输出 |
-| 管理端 | Vue 3、Vite、Pinia、Vue Router、Element Plus | 内容编辑、审核、媒体与站点运营 |
-| 后端 | Java 25、Spring Boot 4.1、MyBatis、Flyway | REST API、鉴权、业务逻辑与数据访问 |
-| 数据层 | MySQL 9.7、Redis 8.8 | 持久化、缓存、统计计数与会话状态 |
-| 网关与部署 | Nginx、Docker Compose | 域名路由、TLS、容器编排与健康检查 |
-
-## 快速开始
-
-### 环境要求
-
-- Docker Desktop 29+ 或 Docker Engine
-- Docker Compose
-
-### 1. 创建本地配置
-
-```powershell
-Copy-Item .env.example .env
-```
-
-首次启动前，请至少修改以下变量：
-
-| 变量 | 用途 |
-| --- | --- |
-| `MYSQL_PASSWORD` | 应用连接 MySQL 的密码 |
-| `MYSQL_ROOT_PASSWORD` | MySQL root 密码 |
-| `REDIS_PASSWORD` | Redis 密码 |
-| `JWT_SECRET` | JWT 签名密钥，至少 32 字节 |
-| `ADMIN_INITIAL_USERNAME` | 首次创建的管理员用户名 |
-| `ADMIN_INITIAL_PASSWORD` | 首次创建的管理员密码，至少 12 位 |
-
-> `ADMIN_INITIAL_USERNAME` 和 `ADMIN_INITIAL_PASSWORD` 仅在用户表为空时生效。管理员创建成功后，请从环境配置中删除这两个值并重建 Backend 容器。
-
-### 2. 启动全部服务
-
-```powershell
-docker compose up --build -d
-docker compose ps
-```
-
-首次启动会构建 Web、Admin 和 Backend 镜像，并由 Flyway 自动完成数据库迁移。
-
-### 3. 打开应用
-
-| 服务 | 地址 |
-| --- | --- |
-| 公开站 | <http://localhost/> |
-| 管理端 | <http://admin.localhost/> |
-| 管理员登录 | <http://admin.localhost/login> |
-| API 状态 | <http://localhost/api/v1/status> |
-| Swagger UI | <http://localhost/docs> |
-| 健康检查 | <http://localhost/actuator/health> |
-
-端口 `80` 被占用时，可在 `.env` 中设置 `HTTP_PORT=8088`，然后通过 `http://localhost:8088/` 访问。
-
-停止服务：
-
-```powershell
-docker compose down
-```
-
-如需同时删除本地 MySQL 和 Redis 数据，请确认数据不再需要后执行：
-
-```powershell
-docker compose down -v
-```
+| 公开站 | Nuxt 4.4、Vue 3.5、TypeScript 6 | SSR 内容展示、互动、SEO 与订阅输出 |
+| 管理端 | Vue 3.5、Vite 8、Pinia 3、Element Plus 2 | 内容编辑、审核、媒体与站点运营 |
+| 后端 | Java 25、Spring Boot 4.1、MyBatis 4、Flyway | REST API、鉴权、业务逻辑与数据访问 |
+| 数据服务 | MySQL、Redis | 持久化、缓存、统计计数与会话状态 |
+| 网关与运维 | Nginx、Docker、Shell | 反向代理、容器构建、备份、恢复与发布辅助 |
 
 ## 本地开发
 
-脱离应用容器开发时，还需要：
+### 环境要求
 
-- Node.js 24、npm 11
-- JDK 25、Maven 3.9+
-- Docker（用于 MySQL、Redis 和 Testcontainers）
+- Node.js 24+
+- npm 11+
+- JDK 25
+- Maven 3.9+
+- MySQL
+- Redis
+- Docker（可选，用于构建服务镜像或运行依赖）
 
-安装前端依赖：
+### 1. 安装前端依赖
 
 ```powershell
 npm ci
 ```
 
-启动公开站和管理端：
+该命令会安装根 npm workspace 中的公开站、管理端和共享 API Client。
+
+### 2. 创建本地配置
+
+```powershell
+Copy-Item .env.example .env
+```
+
+至少需要为后端准备以下配置：
+
+| 变量 | 用途 |
+| --- | --- |
+| `MYSQL_DATABASE` | MySQL 数据库名 |
+| `MYSQL_USERNAME` | 应用数据库用户 |
+| `MYSQL_PASSWORD` | 应用数据库密码 |
+| `REDIS_USERNAME` | Redis 用户名 |
+| `REDIS_PASSWORD` | Redis 密码 |
+| `JWT_SECRET` | JWT 签名密钥，生产环境至少 32 字节 |
+| `ADMIN_INITIAL_USERNAME` | 空用户表首次启动时创建的管理员用户名 |
+| `ADMIN_INITIAL_PASSWORD` | 首次管理员密码，至少 12 位 |
+
+`.env` 已被 Git 和 Docker 构建上下文忽略。不要提交密码、Token、访问密钥或个人主页地址。
+
+### 3. 启动后端
+
+确认 MySQL 和 Redis 可访问后运行：
+
+```powershell
+Set-Location backend
+mvn spring-boot:run
+```
+
+后端默认监听 `http://localhost:8080`。
+
+### 4. 启动前端
+
+在两个终端中分别运行：
 
 ```powershell
 npm run dev:web
+```
+
+```powershell
 npm run dev:admin
 ```
 
-后端可在 IDE 中导入 `backend/pom.xml` 并运行 `BlogApplication`。建议仅通过 Docker 启动依赖服务：
+| 服务 | 默认地址 |
+| --- | --- |
+| 公开站开发服务器 | <http://localhost:3000/> |
+| 管理端开发服务器 | <http://localhost:5173/> |
+| 后端状态 | <http://localhost:8080/api/v1/status> |
+| Swagger UI | <http://localhost:8080/docs> |
+| Actuator 健康检查 | <http://localhost:8080/actuator/health> |
 
-```powershell
-docker compose up -d mysql redis
+公开站和管理端的开发代理按完整环境设计，默认通过本机 `80` 端口的 Nginx 网关访问 `/api`。只启动单个前端模块时，页面可以运行，但依赖 API 的功能需要同时配置网关或调整本地代理目标。
+
+## 社交入口配置
+
+首页个人卡片支持四个平台。真实地址只应写入本地 `.env`：
+
+```dotenv
+NUXT_PUBLIC_SOCIAL_GITHUB_URL=
+NUXT_PUBLIC_SOCIAL_DOUYIN_URL=
+NUXT_PUBLIC_SOCIAL_BILIBILI_URL=
+NUXT_PUBLIC_SOCIAL_XIAOHONGSHU_URL=
 ```
 
-开发环境使用与 Docker Compose 相同的 MySQL、Redis 和鉴权配置；敏感值仅保存在本地 `.env` 中。
+这些变量属于公开运行时配置，浏览器可以读取其值，因此不能用于保存密钥。未配置的入口会保留为不可跳转的占位按钮。
+
+## 常用命令
+
+```powershell
+# 启动公开站开发服务器
+npm run dev:web
+
+# 启动管理端开发服务器
+npm run dev:admin
+
+# 构建公开站
+npm run build:web
+
+# 构建管理端
+npm run build:admin
+
+# 检查所有前端 workspace 的 TypeScript 类型
+npm run typecheck
+```
+
+后端构建：
+
+```powershell
+Set-Location backend
+mvn package
+```
+
+## Docker 镜像
+
+仓库为三个应用服务分别提供 Dockerfile，但当前快照不包含 Docker Compose 编排文件。
+
+```powershell
+# Spring Boot API
+docker build -t wineclouds-backend -f backend/Dockerfile backend
+
+# Nuxt Web
+docker build -t wineclouds-web -f frontend/web/Dockerfile .
+
+# Vue Admin
+docker build -t wineclouds-admin -f frontend/admin/Dockerfile .
+```
+
+完整运行时还需要 MySQL、Redis 和 Nginx。`deploy/nginx/default.conf` 提供本地网关配置，`deploy/nginx/production.conf.template` 提供生产配置模板。
 
 ## 可选集成
 
-### Aliyun OSS
+### 阿里云 OSS
 
-配置 `OSS_REGION`、`OSS_ENDPOINT`、`OSS_BUCKET`、`OSS_ACCESS_KEY_ID` 和 `OSS_ACCESS_KEY_SECRET` 后可启用媒体上传。建议使用只允许访问目标 Bucket 与 `OSS_OBJECT_PREFIX` 的最小权限 RAM 用户。
+配置 `OSS_REGION`、`OSS_ENDPOINT`、`OSS_BUCKET`、`OSS_ACCESS_KEY_ID` 和 `OSS_ACCESS_KEY_SECRET` 后可启用媒体上传。建议使用仅允许访问目标 Bucket 与对象前缀的最小权限 RAM 用户。
 
 未配置 OSS 时，文章、分类、标签和评论等核心功能仍可使用。
 
@@ -140,60 +207,39 @@ docker compose up -d mysql redis
 
 设置 `MAIL_ENABLED=true`，并配置 `MAIL_HOST`、`MAIL_PORT`、`MAIL_USERNAME`、`MAIL_PASSWORD` 和 `MAIL_FROM`，即可启用评论回复邮件通知。
 
-## 生产部署
+## 运维资源
 
-项目提供单机 Docker Compose 生产方案，支持 HTTPS、安全 Cookie、容器日志轮换、只读 Backend 根文件系统、健康检查和版本化镜像。
+`deploy/` 包含以下辅助资源：
 
-1. 将 TLS 证书放入 `deploy/certs/fullchain.pem` 和 `deploy/certs/privkey.pem`。
-2. 复制生产配置模板并替换域名、密码与密钥：
+- Nginx 本地配置与生产模板
+- 版本发布脚本
+- MySQL 备份与恢复脚本
+- 恢复演练和冒烟检查脚本
 
-   ```bash
-   cp .env.production.example .env.production
-   ```
-
-3. 校验 Compose 配置并执行首次发布：
-
-   ```bash
-   docker compose --env-file .env.production \
-     -f docker-compose.yml -f docker-compose.prod.yml config --quiet
-   bash deploy/scripts/deploy.sh 0.1.0
-   ```
-
-生产密钥只应保存在部署环境中，禁止提交 `.env` 或 `.env.production`。`deploy/scripts/` 提供版本发布、MySQL 加密备份、恢复和冒烟检查脚本。
-
-## 常用质量命令
-
-```powershell
-# Frontend unit tests
-npm test
-
-# TypeScript type checking
-npm run typecheck
-
-# Web and Admin production builds
-npm run build
-
-# Backend verification
-Set-Location backend
-mvn verify
-```
-
-仓库的根级 `package.json` 还提供 E2E、OpenAPI、Lighthouse 和 k6 命令，可按发布需要单独执行。
+这些脚本面向既定的服务器环境。正式执行前请检查其中的路径、变量和外部依赖。
 
 ## 项目结构
 
 ```text
 .
-├── backend/                  Spring Boot API、Flyway 与 MyBatis Mapper
+├── backend/                  Spring Boot API、Flyway 迁移与 MyBatis Mapper
 ├── frontend/
 │   ├── web/                  Nuxt SSR 公开站
 │   ├── admin/                Vue 管理端
 │   └── packages/api-client/  前端共享 API Client
-├── deploy/                   Nginx 配置、部署与备份脚本
-├── docker-compose.yml        本地完整环境
-└── docker-compose.prod.yml   单机生产覆盖配置
+├── deploy/
+│   ├── nginx/                本地与生产 Nginx 配置
+│   └── scripts/              发布、备份、恢复与冒烟检查脚本
+├── docs/                     项目设计与实施文档
+├── .env.example              公共安全的环境变量模板
+├── package.json              npm workspace 与根级命令
+└── README.md                 项目入口文档
 ```
 
-## 致谢
+## 隐私与敏感信息
 
-项目的功能范围与视觉方向参考了 MIT License 的 FeiTwnd-Website；本项目未直接复用其代码或资源。
+- 不要提交 `.env` 或任何生产环境配置文件。
+- 不要在源码、Issue、日志或截图中公开密码、Token 和云服务密钥。
+- 个人社交主页通过本地环境变量配置，不应硬编码进公开仓库。
+- 首次管理员创建成功后，应从部署环境中删除初始化用户名和密码。
+

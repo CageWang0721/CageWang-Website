@@ -1,8 +1,38 @@
 <script setup lang="ts">
+import {
+  siBilibili,
+  siGithub,
+  siTiktok,
+  siXiaohongshu,
+  type SimpleIcon
+} from 'simple-icons'
+
 const api = useBlogApi()
 const { data, error, refresh } = await useAsyncData('home', () => api.home())
+const config = useRuntimeConfig()
 const avatarSrc = '/images/wineclouds-avatar.png'
 const siteStats = useSiteStatistics()
+
+const socialLinks: Array<{ label: string, href: string, icon: SimpleIcon }> = [
+  { label: 'GitHub', href: config.public.socialGithubUrl || '#', icon: siGithub },
+  {
+    label: '抖音',
+    href: config.public.socialDouyinUrl || '#',
+    icon: siTiktok
+  },
+  { label: 'B站', href: config.public.socialBilibiliUrl || '#', icon: siBilibili },
+  {
+    label: '小红书',
+    href: config.public.socialXiaohongshuUrl || '#',
+    icon: siXiaohongshu
+  }
+]
+
+const handleSocialLinkClick = (event: MouseEvent, href: string) => {
+  if (href === '#') {
+    event.preventDefault()
+  }
+}
 
 const refreshHome = () => {
   void refresh()
@@ -80,11 +110,25 @@ useSeoMeta({
             </div>
 
             <div class="profile-links">
-              <NuxtLink to="/archive" aria-label="文章归档">
-                <i class="iconfont icon-guidang" aria-hidden="true" />
-              </NuxtLink>
-              <a href="/rss.xml" aria-label="RSS">
-                <i class="iconfont icon-rssdingyue" aria-hidden="true" />
+              <a
+                v-for="link in socialLinks"
+                :key="link.label"
+                :href="link.href"
+                :aria-label="link.label"
+                :aria-disabled="link.href === '#'"
+                :title="link.label"
+                target="_blank"
+                rel="noopener noreferrer"
+                @click="handleSocialLinkClick($event, link.href)"
+              >
+                <svg
+                  class="profile-social-icon"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                  focusable="false"
+                >
+                  <path :d="link.icon.path" fill="currentColor" />
+                </svg>
               </a>
             </div>
           </section>

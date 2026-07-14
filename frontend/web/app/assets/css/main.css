@@ -3156,24 +3156,41 @@ body {
 
 .profile-links {
   margin-top: 22px;
-  display: flex;
-  justify-content: center;
-  gap: 24px;
+  width: min(100%, 184px);
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .profile-links a {
-  width: 28px;
-  height: 28px;
+  min-width: 0;
+  height: 40px;
   display: grid;
   place-items: center;
   color: #6e7785;
-  border-radius: 50%;
-  transition: color .18s ease, background .18s ease;
+  border-radius: 8px;
+  transition: color .18s ease, background .18s ease, box-shadow .18s ease;
 }
 
-.profile-links a:hover {
+.profile-social-icon {
+  width: 19px;
+  height: 19px;
+}
+
+.profile-links a[aria-disabled="true"] {
+  cursor: default;
+}
+
+.profile-links a:hover,
+.profile-links a:focus-visible {
   color: #fff;
   background: #253047;
+}
+
+.profile-links a:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #1768b2;
 }
 
 .site-stat-card {
@@ -3558,12 +3575,19 @@ body {
 }
 
 .profile-links a {
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
-.profile-links a:hover {
+.profile-links a:hover,
+.profile-links a:focus-visible {
   color: #1768b2;
   background: rgb(59 130 208 / 10%);
+}
+
+:root[data-theme="dark"] .profile-links a:hover,
+:root[data-theme="dark"] .profile-links a:focus-visible {
+  color: #8bc8ff;
+  background: rgb(99 179 255 / 14%);
 }
 
 .site-stat-card {

@@ -6,7 +6,11 @@ export default defineNuxtConfig({
     apiBase: process.env.NUXT_API_BASE || 'http://localhost/api/v1',
     public: {
       apiBase: '/api/v1',
-      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost'
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost',
+      socialGithubUrl: '',
+      socialDouyinUrl: '',
+      socialBilibiliUrl: '',
+      socialXiaohongshuUrl: ''
     }
   },
   app: {
