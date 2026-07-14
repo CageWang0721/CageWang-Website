@@ -1475,7 +1475,7 @@ button.primary-action:disabled {
 .login-brand .logo::after {
   margin-left: 6px;
   color: var(--admin-muted);
-  content: "CageWang‘s Blog";
+  content: "Wineclouds’Blog";
 }
 
 .login-brand .logo span {

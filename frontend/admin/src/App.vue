@@ -10,7 +10,15 @@ const usesAdminShell = computed(() => Boolean(route.meta.requiresAuth))
 
 <template>
   <AdminShell v-if="usesAdminShell">
-    <RouterView />
+    <RouterView v-slot="{ Component }">
+      <Transition name="admin-page-fade" mode="out-in">
+        <component :is="Component" :key="route.fullPath" />
+      </Transition>
+    </RouterView>
   </AdminShell>
-  <RouterView v-else />
+  <RouterView v-else v-slot="{ Component }">
+    <Transition name="admin-page-fade" mode="out-in">
+      <component :is="Component" :key="route.fullPath" />
+    </Transition>
+  </RouterView>
 </template>

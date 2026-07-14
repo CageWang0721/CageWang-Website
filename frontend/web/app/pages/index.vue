@@ -1,7 +1,7 @@
 <script setup lang="ts">
 const api = useBlogApi()
 const { data, error, refresh } = await useAsyncData('home', () => api.home())
-const avatarSrc = '/images/cagewang-avatar.png'
+const avatarSrc = '/images/wineclouds-avatar.png'
 const siteStats = useSiteStatistics()
 
 const refreshHome = () => {
@@ -21,9 +21,9 @@ const categoryCount = computed(() => data.value?.categories.length || 0)
 const tagCount = computed(() => data.value?.tags.length || 0)
 
 useSeoMeta({
-  title: 'CageWang‘s Blog · 记录技术、生活与灵光',
+  title: 'Wineclouds’Blog · 记录技术、生活与灵光',
   description: '在代码、生活和那些尚未命名的念头之间，留一点呼吸。',
-  ogTitle: 'CageWang‘s Blog',
+  ogTitle: 'Wineclouds’Blog',
   ogDescription: '记录技术、生活与灵光的个人博客。',
   ogType: 'website',
   twitterCard: 'summary_large_image'
@@ -55,9 +55,9 @@ useSeoMeta({
             <img
               class="profile-avatar"
               :src="avatarSrc"
-              alt="CageWang 的黑猫头像"
+              alt="Wineclouds 的头像"
             >
-            <h2>CageWang</h2>
+            <h2>Wineclouds</h2>
             <p>本质哈基米</p>
             <span class="profile-location">
               <i class="iconfont icon-position" aria-hidden="true" />

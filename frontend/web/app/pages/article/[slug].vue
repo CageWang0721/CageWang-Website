@@ -52,8 +52,8 @@ const toggleLike = async () => {
 }
 
 useSeoMeta({
-  title: () => article.value?.metaTitle || `${article.value?.title || '文章'} · CageWang‘s Blog`,
-  description: () => article.value?.metaDescription || article.value?.summary || 'CageWang‘s Blog 文章',
+  title: () => article.value?.metaTitle || `${article.value?.title || '文章'} · Wineclouds’Blog`,
+  description: () => article.value?.metaDescription || article.value?.summary || 'Wineclouds’Blog 文章',
   ogTitle: () => article.value?.metaTitle || article.value?.title,
   ogDescription: () => article.value?.metaDescription || article.value?.summary || undefined,
   ogType: 'article',
@@ -73,8 +73,8 @@ useHead({
       datePublished: article.value?.publishedAt,
       dateModified: article.value?.updatedAt,
       mainEntityOfPage: canonical.value,
-      author: { '@type': 'Person', name: 'CageWang' },
-      publisher: { '@type': 'Organization', name: 'CageWang‘s Blog' }
+      author: { '@type': 'Person', name: 'Wineclouds' },
+      publisher: { '@type': 'Organization', name: 'Wineclouds’Blog' }
     }))
   }]
 })

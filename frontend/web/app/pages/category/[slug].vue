@@ -15,7 +15,7 @@ const [{ data: categories }, { data: articles }] = await Promise.all([
 const current = computed(() => categories.value?.find((item) => item.slug === slug.value))
 
 useSeoMeta({
-  title: () => `${current.value?.name || '分类'} · CageWang‘s Blog`,
+  title: () => `${current.value?.name || '分类'} · Wineclouds’Blog`,
   description: () => current.value?.description || `浏览 ${current.value?.name || ''} 分类下的文章。`
 })
 </script>

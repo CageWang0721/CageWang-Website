@@ -98,7 +98,7 @@ onMounted(load)
       <div>
         <RouterLink class="back-link" to="/">返回总览</RouterLink>
         <p class="kicker">COMMUNITY / MODERATION</p>
-        <h1>评论审核</h1>
+        <h1>评论管理</h1>
       </div>
       <div class="status"><span />{{ total }} ITEMS</div>
     </header>

@@ -12,7 +12,7 @@ export default defineNuxtConfig({
   app: {
     head: {
       htmlAttrs: { lang: 'zh-CN' },
-      title: 'CageWang‘s Blog',
+      title: 'Wineclouds’Blog',
       meta: [
         {
           name: 'description',
@@ -20,7 +20,7 @@ export default defineNuxtConfig({
         },
         { name: 'theme-color', content: '#f4f1e9' }
       ],
-      link: [{ rel: 'alternate', type: 'application/rss+xml', title: 'CageWang‘s Blog RSS', href: '/rss.xml' }],
+      link: [{ rel: 'alternate', type: 'application/rss+xml', title: 'Wineclouds’Blog RSS', href: '/rss.xml' }],
       script: [{
         innerHTML: "try{var t=localStorage.getItem('blog-theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.dataset.theme='dark'}catch(e){}"
       }]

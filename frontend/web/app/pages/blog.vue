@@ -9,8 +9,8 @@ const { data } = await useAsyncData(
 )
 
 useSeoMeta({
-  title: '全部文章 · CageWang‘s Blog',
-  description: '浏览 CageWang‘s Blog 的全部公开文章。'
+  title: '全部文章 · Wineclouds’Blog',
+  description: '浏览 Wineclouds’Blog 的全部公开文章。'
 })
 </script>
 

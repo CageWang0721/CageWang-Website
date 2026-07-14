@@ -109,7 +109,7 @@ onMounted(load)
       <div>
         <RouterLink class="back-link" to="/">返回总览</RouterLink>
         <p class="kicker">CONTENT / MEDIA</p>
-        <h1>媒体资源</h1>
+        <h1>媒体管理</h1>
       </div>
       <div>
         <input

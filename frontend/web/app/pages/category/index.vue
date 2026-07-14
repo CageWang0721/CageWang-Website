@@ -3,8 +3,8 @@ const api = useBlogApi()
 const { data } = await useAsyncData('categories', () => api.categories())
 
 useSeoMeta({
-  title: '文章分类 · CageWang‘s Blog',
-  description: '按主题浏览 CageWang‘s Blog。'
+  title: '文章分类 · Wineclouds’Blog',
+  description: '按主题浏览 Wineclouds’Blog。'
 })
 </script>
 

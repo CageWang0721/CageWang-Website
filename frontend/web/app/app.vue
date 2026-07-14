@@ -56,7 +56,7 @@ onUnmounted(() => {
     >
       <div class="nav-wrap">
         <NuxtLink class="brand" to="/" aria-label="回到首页">
-          <span>CageWang‘s Blog</span>
+          <span>Wineclouds’Blog</span>
         </NuxtLink>
 
         <nav class="desktop-nav" aria-label="主导航">
@@ -109,7 +109,7 @@ onUnmounted(() => {
 
     <footer class="site-footer">
       <div>
-        <p class="footer-title">CageWang‘s Blog</p>
+        <p class="footer-title">Wineclouds’Blog</p>
         <p>在代码、生活和那些尚未命名的念头之间，留一点呼吸。</p>
       </div>
       <div class="footer-links">

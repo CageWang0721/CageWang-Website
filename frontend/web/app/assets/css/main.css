@@ -659,7 +659,6 @@ a {
 }
 
 .taxonomy-list > a:hover {
-  padding-inline: 24px;
   background: var(--surface);
 }
 
@@ -1812,7 +1811,10 @@ body {
   display: none;
 }
 
-.site-header:not(.over-hero) .desktop-nav a:hover,
+.site-header:not(.over-hero) .desktop-nav a:hover {
+  color: #172033;
+}
+
 .site-header:not(.over-hero) .desktop-nav a.active {
   color: #172033;
   border-color: rgb(255 255 255 / 74%);
@@ -1951,7 +1953,6 @@ body {
 }
 
 .taxonomy-list > a:hover {
-  padding-inline: 32px 24px;
   border-color: rgb(40 120 200 / 20%);
   background: #fff;
   box-shadow: 0 9px 24px rgb(37 55 80 / 10%);
@@ -2510,7 +2511,6 @@ body {
   color: #dce4ef;
 }
 
-:root[data-theme="dark"] .site-header:not(.over-hero) .desktop-nav a:hover,
 :root[data-theme="dark"] .site-header:not(.over-hero) .desktop-nav a.active,
 :root[data-theme="dark"] .site-header:not(.over-hero) .icon-button:hover,
 :root[data-theme="dark"] .site-header:not(.over-hero) .theme-button:hover {
@@ -2518,6 +2518,10 @@ body {
   border-color: rgb(255 255 255 / 10%);
   background: rgb(255 255 255 / 8%);
   box-shadow: none;
+}
+
+:root[data-theme="dark"] .site-header:not(.over-hero) .desktop-nav a:hover {
+  color: #fff;
 }
 
 :root[data-theme="dark"] .page-intro,
@@ -2646,10 +2650,6 @@ body {
     min-height: 94px;
     padding: 20px;
     grid-template-columns: 34px 1fr auto;
-  }
-
-  .taxonomy-list > a:hover {
-    padding-inline: 22px 18px;
   }
 
   .taxonomy-list h2 {
@@ -2801,13 +2801,19 @@ body {
   display: none;
 }
 
-.desktop-nav a:hover,
+.desktop-nav a:hover {
+  color: var(--ink);
+}
+
 .desktop-nav a.active {
   color: var(--ink);
   background: color-mix(in srgb, var(--surface) 82%, transparent);
 }
 
-.over-hero:not(.scrolled) .desktop-nav a:hover,
+.over-hero:not(.scrolled) .desktop-nav a:hover {
+  color: #fff;
+}
+
 .over-hero:not(.scrolled) .desktop-nav a.active {
   color: #fff;
   background: rgb(255 255 255 / 15%);
@@ -3641,13 +3647,16 @@ body {
   color: #e9eef6;
 }
 
-:root[data-theme="dark"] .site-header.over-hero .desktop-nav a:hover,
 :root[data-theme="dark"] .site-header.over-hero .desktop-nav a.active,
 :root[data-theme="dark"] .site-header.over-hero .icon-button:hover,
 :root[data-theme="dark"] .site-header.over-hero .theme-button:hover {
   color: #fff;
   border-color: rgb(255 255 255 / 10%);
   background: rgb(255 255 255 / 9%);
+}
+
+:root[data-theme="dark"] .site-header.over-hero .desktop-nav a:hover {
+  color: #fff;
 }
 
 :root[data-theme="dark"] .profile-card,
@@ -3985,6 +3994,11 @@ main {
   border-color: var(--glass-border);
   background: var(--glass-surface);
   box-shadow: var(--glass-shadow);
+  transform: none;
+}
+
+.archive-articles a:hover {
+  background: transparent;
 }
 
 .article-hero,

@@ -6,9 +6,10 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:8080',
-      '/actuator': 'http://localhost:8080'
+      // Docker keeps the backend on an internal network. Route development
+      // requests through the published nginx gateway instead of host port 8080.
+      '/api': 'http://localhost',
+      '/actuator': 'http://localhost'
     }
   }
 })
-

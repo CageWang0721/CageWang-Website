@@ -1,7 +1,7 @@
 <script setup lang="ts">
 useSeoMeta({
-  title: '隐私说明 · CageWang‘s Blog',
-  description: '了解 CageWang‘s Blog 如何使用匿名标识、保存互动信息并保护访客隐私。'
+  title: '隐私说明 · Wineclouds’Blog',
+  description: '了解 Wineclouds’Blog 如何使用匿名标识、保存互动信息并保护访客隐私。'
 })
 </script>
 

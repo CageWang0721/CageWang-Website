@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { ApiError } from '@personal-blog/api-client'
+import * as echarts from 'echarts'
 
 import { api } from '../services/api'
 import { useAuthStore } from '../stores/auth'
@@ -10,10 +11,9 @@ import type { DashboardResponse } from '../types/interaction'
 const dashboard = ref<DashboardResponse | null>(null)
 const apiError = ref('')
 const auth = useAuthStore()
-
-const maxTrend = computed(() =>
-  Math.max(1, ...(dashboard.value?.trend.map(item => item.views) || [1]))
-)
+const trendChartEl = ref<HTMLDivElement | null>(null)
+let trendChart: echarts.ECharts | null = null
+let trendResizeObserver: ResizeObserver | null = null
 
 const metrics = computed(() => {
   const data = dashboard.value
@@ -25,12 +25,100 @@ const metrics = computed(() => {
   ]
 })
 
+const renderTrendChart = () => {
+  const points = dashboard.value?.trend ?? []
+  if (!trendChartEl.value || points.length === 0) return
+
+  if (!trendChart) {
+    trendChart = echarts.init(trendChartEl.value)
+    trendResizeObserver = new ResizeObserver(() => trendChart?.resize())
+    trendResizeObserver.observe(trendChartEl.value)
+  }
+
+  trendChart.setOption({
+    color: ['#76c8ff', '#d2d9e6'],
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: 'rgba(18, 28, 47, 0.94)',
+      borderColor: 'rgba(255, 255, 255, 0.16)',
+      borderWidth: 1,
+      textStyle: { color: '#f5f7fc', fontSize: 12 },
+      axisPointer: { type: 'line', lineStyle: { color: '#718099', type: 'dashed' } }
+    },
+    legend: {
+      top: 0,
+      right: 0,
+      itemWidth: 20,
+      itemHeight: 8,
+      textStyle: { color: '#c3ccdc', fontSize: 11 },
+      data: ['浏览量 PV', '访客数 UV']
+    },
+    grid: { left: 44, right: 18, top: 42, bottom: 28 },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: points.map(point => point.date),
+      axisLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.14)' } },
+      axisTick: { show: false },
+      axisLabel: {
+        color: '#94a2b9',
+        fontSize: 10,
+        hideOverlap: true,
+        formatter: (value: string) => value.length > 5 ? value.slice(5) : value
+      }
+    },
+    yAxis: {
+      type: 'value',
+      minInterval: 1,
+      axisLine: { show: false },
+      axisTick: { show: false },
+      axisLabel: { color: '#94a2b9', fontSize: 10 },
+      splitLine: { lineStyle: { color: 'rgba(255, 255, 255, 0.08)' } }
+    },
+    series: [
+      {
+        name: '浏览量 PV',
+        type: 'line',
+        data: points.map(point => point.views),
+        smooth: true,
+        showSymbol: false,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: { color: '#76c8ff', width: 2, type: 'solid' },
+        itemStyle: { color: '#76c8ff' },
+        emphasis: { focus: 'series', scale: true }
+      },
+      {
+        name: '访客数 UV',
+        type: 'line',
+        data: points.map(point => point.visitors),
+        smooth: true,
+        showSymbol: false,
+        symbol: 'circle',
+        symbolSize: 6,
+        lineStyle: { color: '#d2d9e6', width: 2, type: 'dashed' },
+        itemStyle: { color: '#d2d9e6' },
+        emphasis: { focus: 'series', scale: true }
+      }
+    ]
+  }, true)
+}
+
 onMounted(async () => {
   try {
     dashboard.value = await api.get<DashboardResponse>('/admin/dashboard')
+    await nextTick()
+    renderTrendChart()
   } catch (cause) {
     apiError.value = cause instanceof ApiError ? cause.message : '仪表盘加载失败'
   }
+})
+
+onBeforeUnmount(() => {
+  trendResizeObserver?.disconnect()
+  trendResizeObserver = null
+  trendChart?.dispose()
+  trendChart = null
 })
 </script>
 
@@ -39,8 +127,8 @@ onMounted(async () => {
     <header class="dashboard-header">
       <div>
         <p class="kicker">OVERVIEW / LIVE DATA</p>
-        <h1>你好，{{ auth.user?.nickname || auth.user?.username }}。</h1>
-        <p class="dashboard-lead">看看网站正在发生什么。</p>
+        <h1>仪表盘</h1>
+        <p class="dashboard-lead">你好，{{ auth.user?.nickname || auth.user?.username }}。看看网站正在发生什么。</p>
       </div>
       <div class="status" :class="{ error: apiError }">
         <span />
@@ -64,15 +152,13 @@ onMounted(async () => {
           <div><p>TRAFFIC / 30 DAYS</p><h2>访问趋势</h2></div>
           <span>{{ dashboard?.views30d || 0 }} PV</span>
         </div>
-        <div v-if="dashboard?.trend.length" class="trend-chart">
-          <div
-            v-for="point in dashboard.trend"
-            :key="point.date"
-            class="trend-bar"
-            :style="{ height: `${Math.max(5, point.views / maxTrend * 100)}%` }"
-            :title="`${point.date}: ${point.views} PV / ${point.visitors} UV`"
-          />
-        </div>
+        <div
+          v-if="dashboard?.trend.length"
+          ref="trendChartEl"
+          class="trend-line-chart"
+          role="img"
+          aria-label="最近 30 天浏览量和访客数双折线图"
+        />
         <div v-else class="panel-empty">开始产生访问数据后，趋势会显示在这里。</div>
       </article>
 

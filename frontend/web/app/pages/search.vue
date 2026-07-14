@@ -16,7 +16,7 @@ const submit = () => {
 }
 
 useSeoMeta({
-  title: () => keyword.value ? `搜索“${keyword.value}” · CageWang‘s Blog` : '搜索 · CageWang‘s Blog',
+  title: () => keyword.value ? `搜索“${keyword.value}” · Wineclouds’Blog` : '搜索 · Wineclouds’Blog',
   robots: 'noindex,follow'
 })
 </script>

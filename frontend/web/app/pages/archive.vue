@@ -4,7 +4,7 @@ const { data } = await useAsyncData('archives', () => api.archives())
 const count = computed(() => data.value?.reduce((total, group) => total + group.articles.length, 0) || 0)
 
 useSeoMeta({
-  title: '文章归档 · CageWang‘s Blog',
+  title: '文章归档 · Wineclouds’Blog',
   description: '沿着时间线浏览所有公开文章。'
 })
 </script>
