@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@fluentui/svg-icons": "^1.1.333",
+    "@meting/core": "^1.6.1",
     "nuxt": "4.4.8",
     "simple-icons": "^16.26.0",
     "vue": "3.5.39"

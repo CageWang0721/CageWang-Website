@@ -7,7 +7,9 @@ const theme = useTheme()
 const api = useBlogApi()
 const siteStats = useSiteStatistics()
 const scrolled = ref(false)
+const isDesktop = ref(false)
 let statisticsTimer: number | undefined
+let musicMediaQuery: MediaQueryList | undefined
 
 const links = [
   { label: '首页', to: '/', icon: 'icon-zhuye' },
@@ -33,7 +35,14 @@ const refreshStatistics = () => {
     .catch(() => undefined)
 }
 
+const updateMusicVisibility = () => {
+  isDesktop.value = musicMediaQuery?.matches ?? false
+}
+
 onMounted(() => {
+  musicMediaQuery = window.matchMedia('(min-width: 721px)')
+  updateMusicVisibility()
+  musicMediaQuery.addEventListener('change', updateMusicVisibility)
   updateHeader()
   refreshStatistics()
   statisticsTimer = window.setInterval(refreshStatistics, 60_000)
@@ -42,6 +51,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  musicMediaQuery?.removeEventListener('change', updateMusicVisibility)
   if (statisticsTimer !== undefined) window.clearInterval(statisticsTimer)
   window.removeEventListener('scroll', updateHeader)
   window.removeEventListener('focus', refreshStatistics)
@@ -50,6 +60,10 @@ onUnmounted(() => {
 
 <template>
   <div class="site-shell">
+    <ClientOnly>
+      <MusicPlayer v-if="isDesktop" />
+    </ClientOnly>
+
     <header
       class="site-header"
       :class="{ scrolled }"

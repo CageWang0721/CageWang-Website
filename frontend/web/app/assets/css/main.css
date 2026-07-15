@@ -4195,3 +4195,211 @@ main {
     background: rgb(17 27 43 / 94%);
   }
 }
+
+.music-player {
+  position: fixed;
+  z-index: 9;
+  top: 50%;
+  left: 0;
+  width: 292px;
+  transform: translate(-276px, -50%);
+  transition: transform 220ms ease;
+}
+
+.music-player--expanded {
+  transform: translate(0, -50%);
+}
+
+.music-player__panel {
+  min-height: 176px;
+  padding: 14px;
+  color: var(--ink);
+  border: 1px solid var(--glass-border);
+  border-radius: 0 16px 16px 0;
+  background: var(--glass-surface);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: var(--glass-filter);
+  -webkit-backdrop-filter: var(--glass-filter);
+}
+
+.music-player__edge {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 16px;
+  height: 84px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  border: 0;
+  border-radius: 0 12px 12px 0;
+  background: var(--accent);
+  box-shadow: 4px 6px 18px rgb(25 48 85 / 24%);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.music-player--expanded .music-player__edge {
+  right: -16px;
+}
+
+.music-player__edge span {
+  font-size: 15px;
+}
+
+.music-player__now-playing {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) 34px;
+  gap: 11px;
+  align-items: center;
+}
+
+.music-player__cover {
+  width: 54px;
+  height: 54px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: var(--surface-soft);
+}
+
+.music-player__track-copy {
+  min-width: 0;
+}
+
+.music-player__track-copy strong,
+.music-player__track-copy small {
+  overflow: hidden;
+  display: block;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.music-player__track-copy strong {
+  font-size: 13px;
+}
+
+.music-player__track-copy small,
+.music-player__status,
+.music-player__playlist small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.music-player__icon-button,
+.music-player__controls button {
+  padding: 0;
+  color: var(--ink);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.music-player__icon-button {
+  width: 34px;
+  height: 34px;
+  color: #fff;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.music-player__progress {
+  display: grid;
+  gap: 6px;
+  margin: 15px 0 10px;
+}
+
+.music-player__progress input,
+.music-player__volume input {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.music-player__progress span {
+  color: var(--muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.music-player__controls {
+  display: grid;
+  grid-template-columns: repeat(2, 24px) minmax(52px, 1fr) repeat(3, 24px);
+  gap: 6px;
+  align-items: center;
+}
+
+.music-player__controls button {
+  min-height: 24px;
+  border-radius: 6px;
+}
+
+.music-player__controls button:hover,
+.music-player__controls button:focus-visible {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent-soft) 70%, transparent);
+}
+
+.music-player__status {
+  margin: 12px 0 0;
+}
+
+.music-player__status--error {
+  color: #b64545;
+}
+
+.music-player__playlist {
+  max-height: 172px;
+  margin: 13px -4px -4px;
+  padding: 9px 4px 0;
+  overflow-y: auto;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+
+.music-player__playlist li + li {
+  margin-top: 2px;
+}
+
+.music-player__playlist button {
+  width: 100%;
+  padding: 7px 5px;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 0 6px;
+  color: var(--ink);
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.music-player__playlist button:hover,
+.music-player__playlist .active button {
+  background: color-mix(in srgb, var(--accent-soft) 70%, transparent);
+}
+
+.music-player__playlist span {
+  grid-row: span 2;
+  align-self: center;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.music-player__playlist b,
+.music-player__playlist small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.music-player__playlist b {
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .music-player {
+    display: none;
+  }
+}
