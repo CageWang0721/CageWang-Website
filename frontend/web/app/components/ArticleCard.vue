@@ -3,13 +3,12 @@ import type { ArticleCard } from '~/types/blog'
 
 defineProps<{
   article: ArticleCard
-  featured?: boolean
   index?: number
 }>()
 </script>
 
 <template>
-  <article class="article-card" :class="{ featured }">
+  <article class="article-card">
     <NuxtLink
       class="article-card-link"
       :to="`/article/${article.slug}`"

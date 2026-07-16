@@ -20,7 +20,11 @@ previous_version=""
 export APP_VERSION="$version"
 compose=(docker compose --env-file "$ENV_FILE" -f "$ROOT_DIR/docker-compose.yml" -f "$ROOT_DIR/docker-compose.prod.yml")
 
-"$ROOT_DIR/deploy/scripts/backup-mysql.sh"
+if "${compose[@]}" ps -q mysql | grep -q .; then
+  "$ROOT_DIR/deploy/scripts/backup-mysql.sh"
+else
+  echo "No existing MySQL container; skipping the pre-deploy backup."
+fi
 "${compose[@]}" build --pull backend web admin-static
 "${compose[@]}" up -d --remove-orphans --wait
 

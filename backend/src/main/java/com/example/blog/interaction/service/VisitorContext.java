@@ -1,7 +1,6 @@
 package com.example.blog.interaction.service;
 
 import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HexFormat;
@@ -56,10 +55,6 @@ public class VisitorContext {
                 ? request.getRemoteAddr()
                 : forwarded.split(",")[0].trim();
         return hmac(ip == null ? "unknown" : ip);
-    }
-
-    public String subjectHash(String value) {
-        return hmac(value);
     }
 
     private String cookie(HttpServletRequest request, String name) {

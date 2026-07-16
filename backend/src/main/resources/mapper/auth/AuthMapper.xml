@@ -11,15 +11,10 @@
         <result property="email" column="email"/>
         <result property="role" column="role"/>
         <result property="status" column="status"/>
-        <result property="lastLoginAt" column="last_login_at"/>
-        <result property="passwordChangedAt" column="password_changed_at"/>
-        <result property="createdAt" column="created_at"/>
-        <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
     <sql id="userColumns">
-        id, username, password_hash, nickname, email, role, status,
-        last_login_at, password_changed_at, created_at, updated_at
+        id, username, password_hash, nickname, email, role, status
     </sql>
 
     <select id="findByUsername" resultMap="userAccount">

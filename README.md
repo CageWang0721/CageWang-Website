@@ -180,7 +180,7 @@ mvn package
 
 ## Docker 镜像
 
-仓库为三个应用服务分别提供 Dockerfile，但当前快照不包含 Docker Compose 编排文件。
+仓库为三个应用服务分别提供 Dockerfile，以及本地与生产环境的 Docker Compose 编排文件。
 
 ```powershell
 # Spring Boot API
@@ -193,7 +193,20 @@ docker build -t wineclouds-web -f frontend/web/Dockerfile .
 docker build -t wineclouds-admin -f frontend/admin/Dockerfile .
 ```
 
-完整运行时还需要 MySQL、Redis 和 Nginx。`deploy/nginx/default.conf` 提供本地网关配置，`deploy/nginx/production.conf.template` 提供生产配置模板。
+本地完整栈：
+
+```powershell
+docker compose up --build --wait
+```
+
+生产部署前，在 Ubuntu 服务器上复制 `.env.production.example` 为 `.env.production` 并填入真实值；该文件受 Git 忽略保护。将覆盖 `PUBLIC_HOST` 与 `ADMIN_HOST` 的证书分别命名为 `fullchain.pem`、`privkey.pem` 后放到 `deploy/certs/`，再执行：
+
+```bash
+chmod +x deploy/scripts/*.sh
+./deploy/scripts/deploy.sh 2026.07.16.1
+```
+
+`docker-compose.prod.yml` 只暴露 Nginx 的 80/443 端口；MySQL、Redis、后端与前端服务都仅在 Docker 网络内通信。首次部署没有旧数据库容器时，发布脚本会跳过部署前备份。
 
 ## 可选集成
 
@@ -242,4 +255,3 @@ docker build -t wineclouds-admin -f frontend/admin/Dockerfile .
 - 不要在源码、Issue、日志或截图中公开密码、Token 和云服务密钥。
 - 个人社交主页通过本地环境变量配置，不应硬编码进公开仓库。
 - 首次管理员创建成功后，应从部署环境中删除初始化用户名和密码。
-

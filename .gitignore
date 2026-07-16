@@ -1,6 +1,9 @@
 .env
 .env.*
 !.env.example
+!.env.production.example
+
+deploy/certs/
 
 node_modules/
 **/node_modules/
@@ -13,6 +16,7 @@ dist/
 **/dist/
 target/
 **/target/
+*.tsbuildinfo
 
 .superpowers/
 docs/superpowers/

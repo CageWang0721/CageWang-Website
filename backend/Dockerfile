@@ -4,7 +4,7 @@ WORKDIR /workspace
 COPY pom.xml .
 COPY src ./src
 RUN --mount=type=cache,target=/root/.m2 \
-    mvn -B -ntp package -DskipTests
+    mvn -B -ntp package
 
 FROM eclipse-temurin:25-jre
 RUN apt-get update \

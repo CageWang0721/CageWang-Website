@@ -1,7 +1,5 @@
 package com.example.blog.auth.model;
 
-import java.time.LocalDateTime;
-
 public class UserAccount {
 
     private Long id;
@@ -11,10 +9,6 @@ public class UserAccount {
     private String email;
     private String role;
     private String status;
-    private LocalDateTime lastLoginAt;
-    private LocalDateTime passwordChangedAt;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 
     public Long id() {
         return id;
@@ -64,44 +58,8 @@ public class UserAccount {
         this.role = role;
     }
 
-    public String status() {
-        return status;
-    }
-
     public void setStatus(String status) {
         this.status = status;
-    }
-
-    public LocalDateTime lastLoginAt() {
-        return lastLoginAt;
-    }
-
-    public void setLastLoginAt(LocalDateTime lastLoginAt) {
-        this.lastLoginAt = lastLoginAt;
-    }
-
-    public LocalDateTime passwordChangedAt() {
-        return passwordChangedAt;
-    }
-
-    public void setPasswordChangedAt(LocalDateTime passwordChangedAt) {
-        this.passwordChangedAt = passwordChangedAt;
-    }
-
-    public LocalDateTime createdAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime updatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
     }
 
     public boolean enabled() {

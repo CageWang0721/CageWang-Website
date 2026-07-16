@@ -1,0 +1,288 @@
+/* Windows 11 Fluent / Mica panorama homepage */
+.reference-home {
+  --fluent-canvas: #f8f8f8;
+  --fluent-surface: rgb(255 255 255 / 82%);
+  --fluent-surface-strong: rgb(255 255 255 / 94%);
+  --fluent-border: rgb(255 255 255 / 76%);
+  --fluent-line: rgb(80 103 135 / 16%);
+  --fluent-text: #1a1a1a;
+  --fluent-muted: #667085;
+  --fluent-accent: #3b82d0;
+  min-height: 0;
+  color: var(--fluent-text);
+  background: var(--fluent-canvas);
+  font-family: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+
+.home-feed-section {
+  min-height: 0;
+  padding: 28px 28px 18px;
+  border-top: 1px solid rgb(255 255 255 / 75%);
+  background: var(--fluent-canvas);
+}
+
+.home-feed-layout {
+  width: min(1160px, 100%);
+  grid-template-columns: minmax(0, 1fr) 286px;
+  gap: 24px;
+}
+
+.home-article-column {
+  min-height: 500px;
+}
+
+.home-article-column > .empty-state {
+  min-height: 500px;
+  padding: 32px 48px 104px;
+  border: 1px solid var(--fluent-border);
+  border-radius: 12px;
+  background: var(--fluent-surface);
+  box-shadow:
+    0 1px 1px rgb(255 255 255 / 75%) inset,
+    0 5px 18px rgb(37 55 80 / 6%);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+
+.empty-state > .empty-state-icon {
+  width: 48px;
+  height: 48px;
+  margin-inline: auto;
+  display: grid;
+  place-items: center;
+  color: var(--fluent-accent, var(--accent));
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  font-size: 21px;
+}
+
+.empty-state-icon .iconfont {
+  font-size: 21px;
+}
+
+.home-article-column > .empty-state h2 {
+  margin: 20px 0 9px;
+  color: var(--fluent-text);
+  font-family: "Segoe UI Variable Display", "Segoe UI", "Microsoft YaHei UI", sans-serif;
+  font-size: 23px;
+  font-weight: 500;
+  letter-spacing: -.025em;
+}
+
+.home-article-column > .empty-state p {
+  color: var(--fluent-muted);
+  font-size: 13px;
+}
+
+.home-sidebar {
+  top: 88px;
+  gap: 14px;
+}
+
+.profile-card,
+.site-stat-card {
+  border: 1px solid var(--fluent-border);
+  border-radius: 12px;
+  background: var(--fluent-surface-strong);
+  box-shadow:
+    0 1px 1px rgb(255 255 255 / 75%) inset,
+    0 5px 18px rgb(37 55 80 / 7%);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+}
+
+.profile-card {
+  padding: 18px 22px 14px;
+}
+
+.profile-avatar {
+  width: 78px;
+  height: 78px;
+  margin-bottom: 13px;
+  border: 4px solid rgb(255 255 255 / 92%);
+  box-shadow: 0 6px 20px rgb(21 47 80 / 20%);
+}
+
+.profile-card h2 {
+  margin-bottom: 5px;
+  color: var(--fluent-text);
+  font-family: "Segoe UI Variable Display", "Segoe UI", "Microsoft YaHei UI", sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.profile-card > p,
+.profile-location,
+.profile-counts span {
+  color: var(--fluent-muted);
+}
+
+.profile-counts {
+  margin-top: 20px;
+}
+
+.profile-counts a {
+  min-height: 58px;
+  border-right-color: var(--fluent-line);
+  border-radius: 4px;
+  transition: background .16s ease;
+}
+
+.profile-counts a:hover {
+  background: rgb(59 130 208 / 8%);
+}
+
+.profile-counts strong {
+  color: #202939;
+  font-family: "Segoe UI Variable Display", "Segoe UI", sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.profile-links {
+  margin-top: 18px;
+}
+
+.profile-links a {
+  border-radius: 8px;
+}
+
+.profile-links a:hover,
+.profile-links a:focus-visible {
+  color: #1768b2;
+  background: rgb(59 130 208 / 10%);
+}
+
+:root[data-theme="dark"] .profile-links a:hover,
+:root[data-theme="dark"] .profile-links a:focus-visible {
+  color: #8bc8ff;
+  background: rgb(99 179 255 / 14%);
+}
+
+.site-stat-card {
+  padding: 16px 20px;
+}
+
+.site-stat-card h2 {
+  margin-bottom: 15px;
+  color: #202939;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.site-stat-card dl {
+  gap: 8px;
+}
+
+.site-stat-card dl > div {
+  color: var(--fluent-muted);
+}
+
+.site-stat-card dd {
+  color: #344054;
+  font-variant-numeric: tabular-nums;
+}
+
+.site-footer {
+  width: min(1200px, calc(100% - 56px));
+  min-height: 154px;
+  padding-block: 30px 18px;
+  border-top-color: rgb(80 103 135 / 12%);
+  background: #fff;
+  box-shadow: 0 0 0 100vmax #fff;
+  font-family: "Segoe UI Variable Text", "Segoe UI", "Microsoft YaHei UI", sans-serif;
+}
+
+.footer-title {
+  font-family: "Segoe UI Variable Display", "Segoe UI", "Microsoft YaHei UI", sans-serif;
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -.02em;
+}
+
+.footer-links a {
+  border-radius: 4px;
+  transition: color .16s ease;
+}
+
+.footer-links a:hover {
+  color: #2878c8;
+}
+
+.site-footer .copyright {
+  margin-top: 28px;
+}
+
+:root[data-theme="dark"] .reference-home {
+  --fluent-canvas: #111722;
+  --fluent-surface: rgb(26 35 49 / 88%);
+  --fluent-surface-strong: rgb(25 34 48 / 94%);
+  --fluent-border: rgb(255 255 255 / 10%);
+  --fluent-line: rgb(255 255 255 / 10%);
+  --fluent-text: #f4f7fb;
+  --fluent-muted: #a8b2c2;
+  --fluent-accent: #6eb4f2;
+}
+
+:root[data-theme="dark"] .profile-card,
+:root[data-theme="dark"] .site-stat-card {
+  border-color: var(--fluent-border);
+  background: var(--fluent-surface-strong);
+}
+
+:root[data-theme="dark"] .profile-card h2,
+:root[data-theme="dark"] .profile-counts strong,
+:root[data-theme="dark"] .site-stat-card h2,
+:root[data-theme="dark"] .site-stat-card dd {
+  color: var(--fluent-text);
+}
+
+:root[data-theme="dark"] .site-footer {
+  background: #151d29;
+  box-shadow: 0 0 0 100vmax #151d29;
+}
+
+@media (max-width: 900px) {
+  .home-feed-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .home-sidebar {
+    position: static;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .home-article-column,
+  .home-article-column > .empty-state {
+    min-height: 420px;
+  }
+}
+
+@media (max-width: 720px) {
+  .home-feed-section {
+    padding: 18px 14px 56px;
+  }
+
+  .home-article-column,
+  .home-article-column > .empty-state {
+    min-height: 360px;
+  }
+
+  .home-article-column > .empty-state {
+    padding: 32px 20px;
+  }
+
+  .home-article-column > .empty-state h2 {
+    font-size: 21px;
+  }
+
+  .home-sidebar {
+    grid-template-columns: 1fr;
+  }
+
+  .site-footer {
+    width: calc(100% - 28px);
+    min-height: 210px;
+  }
+
+}

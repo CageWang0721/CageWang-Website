@@ -48,7 +48,7 @@ public class ArticleService {
 
     public ArticleDetailResponse findById(Long id) {
         ArticleRecord article = requireArticle(id);
-        return toDetail(article, articleMapper.findTagIds(id));
+        return ArticleDetailResponse.from(article, articleMapper.findTagIds(id));
     }
 
     public List<TaxonomyOption> findCategories() {
@@ -61,26 +61,23 @@ public class ArticleService {
 
     @Transactional
     public ArticleDetailResponse create(ArticleUpsertRequest request) {
-        validateReferences(request);
-        String slug = request.slug().trim();
-        ensureSlugAvailable(slug, null);
-        RenderedMarkdown rendered = markdownService.render(request.contentMarkdown());
+        PreparedArticle article = prepareArticle(request, null);
         articleMapper.insert(
-                request.title().trim(),
-                slug,
-                blankToNull(request.summary()),
-                request.contentMarkdown(),
-                rendered.html(),
-                rendered.plain(),
-                request.categoryId(),
-                request.visibility(),
-                request.pinned(),
-                request.allowComment(),
-                rendered.wordCount(),
-                rendered.readingMinutes(),
-                blankToNull(request.metaTitle()),
-                blankToNull(request.metaDescription()),
-                blankToNull(request.canonicalUrl())
+                article.title(),
+                article.slug(),
+                article.summary(),
+                article.markdown(),
+                article.rendered().html(),
+                article.rendered().plain(),
+                article.categoryId(),
+                article.visibility(),
+                article.pinned(),
+                article.allowComment(),
+                article.rendered().wordCount(),
+                article.rendered().readingMinutes(),
+                article.metaTitle(),
+                article.metaDescription(),
+                article.canonicalUrl()
         );
         Long id = articleMapper.lastInsertId();
         replaceTags(id, request.tagIds());
@@ -90,34 +87,31 @@ public class ArticleService {
     @Transactional
     public ArticleDetailResponse update(Long id, ArticleUpsertRequest request) {
         ArticleRecord existing = requireArticle(id);
-        validateReferences(request);
-        String slug = request.slug().trim();
-        ensureSlugAvailable(slug, id);
-        RenderedMarkdown rendered = markdownService.render(request.contentMarkdown());
+        PreparedArticle article = prepareArticle(request, id);
         int changed = articleMapper.update(
                 id,
-                request.title().trim(),
-                slug,
-                blankToNull(request.summary()),
-                request.contentMarkdown(),
-                rendered.html(),
-                rendered.plain(),
-                request.categoryId(),
-                request.visibility(),
-                request.pinned(),
-                request.allowComment(),
-                rendered.wordCount(),
-                rendered.readingMinutes(),
-                blankToNull(request.metaTitle()),
-                blankToNull(request.metaDescription()),
-                blankToNull(request.canonicalUrl()),
+                article.title(),
+                article.slug(),
+                article.summary(),
+                article.markdown(),
+                article.rendered().html(),
+                article.rendered().plain(),
+                article.categoryId(),
+                article.visibility(),
+                article.pinned(),
+                article.allowComment(),
+                article.rendered().wordCount(),
+                article.rendered().readingMinutes(),
+                article.metaTitle(),
+                article.metaDescription(),
+                article.canonicalUrl(),
                 request.version()
         );
         if (changed == 0) {
             throw new ApiException(HttpStatus.CONFLICT, "文章已被其他操作修改，请刷新后重试");
         }
-        if (!existing.slug().equals(slug)) {
-            articleMapper.insertRedirect(existing.slug(), "/article/" + slug);
+        if (!existing.slug().equals(article.slug())) {
+            articleMapper.insertRedirect(existing.slug(), "/article/" + article.slug());
         }
         replaceTags(id, request.tagIds());
         return findById(id);
@@ -187,30 +181,23 @@ public class ArticleService {
         }
     }
 
-    private ArticleDetailResponse toDetail(ArticleRecord article, List<Long> tagIds) {
-        return new ArticleDetailResponse(
-                article.id(),
-                article.title(),
-                article.slug(),
-                article.summary(),
-                article.contentMarkdown(),
-                article.contentHtml(),
-                article.categoryId(),
-                tagIds,
-                article.status(),
-                article.visibility(),
-                article.pinned(),
-                article.allowComment(),
-                article.wordCount(),
-                article.readingMinutes(),
-                article.viewCount(),
-                article.metaTitle(),
-                article.metaDescription(),
-                article.canonicalUrl(),
-                article.publishedAt(),
-                article.createdAt(),
-                article.updatedAt(),
-                article.version()
+    private PreparedArticle prepareArticle(ArticleUpsertRequest request, Long articleId) {
+        validateReferences(request);
+        String slug = request.slug().trim();
+        ensureSlugAvailable(slug, articleId);
+        return new PreparedArticle(
+                request.title().trim(),
+                slug,
+                blankToNull(request.summary()),
+                request.contentMarkdown(),
+                markdownService.render(request.contentMarkdown()),
+                request.categoryId(),
+                request.visibility(),
+                request.pinned(),
+                request.allowComment(),
+                blankToNull(request.metaTitle()),
+                blankToNull(request.metaDescription()),
+                blankToNull(request.canonicalUrl())
         );
     }
 
@@ -227,5 +214,21 @@ public class ArticleService {
     private String blankToNull(String value) {
         if (value == null || value.isBlank()) return null;
         return value.trim();
+    }
+
+    private record PreparedArticle(
+            String title,
+            String slug,
+            String summary,
+            String markdown,
+            RenderedMarkdown rendered,
+            Long categoryId,
+            String visibility,
+            boolean pinned,
+            boolean allowComment,
+            String metaTitle,
+            String metaDescription,
+            String canonicalUrl
+    ) {
     }
 }
