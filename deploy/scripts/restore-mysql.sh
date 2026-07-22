@@ -42,7 +42,8 @@ fi
 
 compose=(docker compose --env-file "$ENV_FILE" -f "$ROOT_DIR/docker-compose.yml" -f "$ROOT_DIR/docker-compose.prod.yml")
 "${compose[@]}" exec -T mysql sh -c \
-  'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS `'"$target_database"'` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"'
+  'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS \`$1\` CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci"' \
+  sh "$target_database"
 
 openssl enc -d -aes-256-cbc -pbkdf2 -pass "file:$password_file" -in "$backup" \
   | gzip -dc \

@@ -17,7 +17,6 @@ import com.example.blog.interaction.service.PublicInteractionGuard;
 import com.example.blog.interaction.service.VisitorContext.Visitor;
 import com.example.blog.notification.service.SensitiveDataCipher;
 import com.example.blog.shared.error.ApiException;
-import com.example.blog.shared.security.CaptchaService;
 
 @Service
 public class CommentSubmissionService {
@@ -30,7 +29,6 @@ public class CommentSubmissionService {
     private final MarkdownService markdown;
     private final SensitiveDataCipher cipher;
     private final PublicInteractionGuard interactionGuard;
-    private final CaptchaService captchas;
     private final CommentPolicy policy;
 
     public CommentSubmissionService(
@@ -38,14 +36,12 @@ public class CommentSubmissionService {
             MarkdownService markdown,
             SensitiveDataCipher cipher,
             PublicInteractionGuard interactionGuard,
-            CaptchaService captchas,
             CommentPolicy policy
     ) {
         this.comments = comments;
         this.markdown = markdown;
         this.cipher = cipher;
         this.interactionGuard = interactionGuard;
-        this.captchas = captchas;
         this.policy = policy;
     }
 
@@ -75,7 +71,6 @@ public class CommentSubmissionService {
         interactionGuard.comment(visitor.anonymousKeyHash(), MESSAGE_TYPE.equals(type));
 
         String content = policy.validateContent(request.content());
-        verifyCaptchaWhenRequired(visitor, request, content);
         rejectDuplicateSubmission(visitor, content);
 
         ReplyTarget replyTarget = resolveReplyTarget(articleId, type, request.parentId());
@@ -86,17 +81,6 @@ public class CommentSubmissionService {
                 PENDING_STATUS,
                 "已提交，审核通过后会公开显示"
         );
-    }
-
-    private void verifyCaptchaWhenRequired(
-            Visitor visitor,
-            CommentRequest request,
-            String content
-    ) {
-        boolean firstInteraction = comments.countByAnonymousKey(visitor.anonymousKeyHash()) == 0;
-        if (policy.requiresCaptcha(firstInteraction, content)) {
-            captchas.verify(request.captchaId(), request.captchaAnswer());
-        }
     }
 
     private void rejectDuplicateSubmission(Visitor visitor, String content) {
@@ -131,7 +115,7 @@ public class CommentSubmissionService {
             String content,
             ReplyTarget replyTarget
     ) {
-        var rendered = markdown.render(content);
+        var rendered = markdown.renderComment(content);
         String email = policy.trimToNull(request.email());
 
         comments.insert(

@@ -23,7 +23,7 @@ public class AdminMarkdownController {
 
     @PostMapping("/preview")
     MarkdownPreviewResponse preview(@Valid @RequestBody MarkdownPreviewRequest request) {
-        var rendered = markdownService.render(request.markdown());
+        var rendered = markdownService.renderArticle(request.markdown());
         return new MarkdownPreviewResponse(
                 rendered.html(),
                 rendered.plain(),

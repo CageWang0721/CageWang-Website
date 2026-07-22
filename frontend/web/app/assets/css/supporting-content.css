@@ -37,16 +37,36 @@
   margin: 45px 0 0;
 }
 
-.icp-record {
+.record-links {
   grid-column: 1 / -1;
-  justify-self: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-top: 10px;
+}
+
+.icp-record,
+.public-security-record {
   color: var(--muted);
   font-size: 12px;
   text-decoration: none;
 }
 
-.icp-record:hover {
+.public-security-record {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.public-security-record-icon {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  object-fit: contain;
+}
+
+.icp-record:hover,
+.public-security-record:hover {
   color: var(--accent);
 }
 
@@ -184,23 +204,9 @@
 .comment-submit {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 20px;
   margin-top: 18px;
-}
-
-.comment-form .notify-choice {
-  display: flex;
-  grid-template-columns: 16px 1fr;
-  align-items: center;
-  gap: 8px;
-}
-
-.comment-form .notify-choice input {
-  width: 15px;
-  height: 15px;
-  padding: 0;
-  accent-color: var(--accent);
 }
 
 .form-message {

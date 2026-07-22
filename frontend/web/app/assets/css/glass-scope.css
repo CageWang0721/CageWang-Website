@@ -1,0 +1,47 @@
+/* Acrylic is reserved for the persistent header and footer only. */
+:root {
+  --content-surface-no-blur: rgb(222 230 243 / 96%);
+}
+
+:root[data-theme="dark"] {
+  --content-surface-no-blur: rgb(10 18 32 / 96%);
+}
+
+.site-shell main *,
+.site-shell main *::before,
+.site-shell main *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.site-shell main :is(
+  .home-panel,
+  .profile-card,
+  .article-card,
+  .page-intro,
+  .article-hero,
+  .article-layout,
+  .interaction-section,
+  .related-section,
+  .privacy-page,
+  .privacy-page section,
+  .search-box,
+  .search-summary,
+  .loading-line,
+  .archive-group,
+  .taxonomy-list > a,
+  .tag-wall a,
+  .empty-state,
+  .site-stat-card,
+  .comment-form,
+  .comment-item,
+  .comment-empty,
+  .article-navigation a,
+  .pagination
+) {
+  background: var(--content-surface-no-blur) !important;
+}
+
+.site-shell main .search-box input {
+  background: color-mix(in srgb, var(--content-surface-no-blur) 96%, var(--ink) 4%) !important;
+}

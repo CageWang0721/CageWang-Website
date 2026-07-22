@@ -105,10 +105,16 @@ blog:
     taxonomy-cache-ttl: ${TAXONOMY_CACHE_TTL:30m}
   statistics:
     flush-interval: ${STATISTICS_FLUSH_INTERVAL:60000}
+  github-contributions:
+    enabled: ${GITHUB_ENABLED:false}
+    username: ${GITHUB_USERNAME:Wineclouds04}
+    token: ${GITHUB_TOKEN:}
+    cron: "${GITHUB_SYNC_CRON:0 10 8 * * *}"
+    zone: ${GITHUB_SYNC_ZONE:Asia/Shanghai}
   auth:
     issuer: personal-blog
     audience: personal-blog-admin
-    jwt-secret: ${JWT_SECRET:local-development-jwt-secret-change-before-production-2026}
+    jwt-secret: ${JWT_SECRET:}
     access-ttl: ${ACCESS_TOKEN_TTL:15m}
     refresh-ttl: ${REFRESH_TOKEN_TTL:7d}
     secure-cookies: ${SECURE_COOKIES:false}

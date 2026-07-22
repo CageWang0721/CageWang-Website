@@ -96,7 +96,7 @@ public class CommentModerationService {
     }
 
     private Long insertAdminReply(CommentRecord parent, String content, Long operatorId) {
-        var rendered = markdown.render(content);
+        var rendered = markdown.renderComment(content);
         Long rootId = parent.rootId() == null ? parent.id() : parent.rootId();
 
         comments.insert(

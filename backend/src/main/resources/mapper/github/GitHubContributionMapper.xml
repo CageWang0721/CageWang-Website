@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.blog.github.mapper.GitHubContributionMapper">
+    <select id="findSnapshot" resultType="com.example.blog.github.model.GitHubContributionSnapshot">
+        SELECT username,
+               total_contributions,
+               CAST(contributions_json AS CHAR) AS contributions_json,
+               synced_at
+        FROM github_contribution_snapshot
+        WHERE snapshot_key = 1
+    </select>
+
+    <insert id="upsertSnapshot">
+        INSERT INTO github_contribution_snapshot (
+            snapshot_key,
+            username,
+            total_contributions,
+            contributions_json,
+            synced_at
+        ) VALUES (
+            1,
+            #{username},
+            #{totalContributions},
+            CAST(#{contributionsJson} AS JSON),
+            UTC_TIMESTAMP(3)
+        )
+        ON DUPLICATE KEY UPDATE
+            username = VALUES(username),
+            total_contributions = VALUES(total_contributions),
+            contributions_json = VALUES(contributions_json),
+            synced_at = VALUES(synced_at)
+    </insert>
+</mapper>

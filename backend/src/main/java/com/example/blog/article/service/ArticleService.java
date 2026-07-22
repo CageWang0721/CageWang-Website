@@ -190,7 +190,7 @@ public class ArticleService {
                 slug,
                 blankToNull(request.summary()),
                 request.contentMarkdown(),
-                markdownService.render(request.contentMarkdown()),
+                markdownService.renderArticle(request.contentMarkdown()),
                 request.categoryId(),
                 request.visibility(),
                 request.pinned(),

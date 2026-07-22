@@ -6,12 +6,13 @@ import { ApiError } from '@personal-blog/api-client'
 
 import { api } from '../services/api'
 import { useAuthStore } from '../stores/auth'
+import WordLikeEditor from '../components/WordLikeEditor.vue'
 import type {
   ArticleDetail,
   ArticleInput,
+  ArticleStatus,
   TaxonomyOption
 } from '../types/article'
-import type { MediaAsset } from '../types/media'
 
 const route = useRoute()
 const router = useRouter()
@@ -20,22 +21,34 @@ const id = computed(() => route.params.id ? Number(route.params.id) : null)
 const isNew = computed(() => id.value === null)
 const canWrite = computed(() => auth.user?.role === 'ADMIN')
 const saving = ref(false)
+const publishing = ref(false)
+const withdrawing = ref(false)
 const loading = ref(!isNew.value)
 const error = ref('')
+const success = ref('')
 const savedAt = ref('')
 const saveState = ref<'idle' | 'dirty' | 'saving' | 'saved' | 'error'>('idle')
+const articleStatus = ref<ArticleStatus | null>(null)
+const publishConfirmationOpen = ref(false)
 const previewHtml = ref('')
 const previewStats = reactive({ wordCount: 0, readingMinutes: 0 })
 const previewing = ref(false)
-const imageUploading = ref(false)
 const ossConfigured = ref(false)
-const imageInput = ref<HTMLInputElement | null>(null)
+const maxImageSize = ref(10 * 1024 * 1024)
 const ready = ref(false)
 let saveTimer: ReturnType<typeof setTimeout> | undefined
 let previewTimer: ReturnType<typeof setTimeout> | undefined
 let savedFingerprint = ''
 const categories = ref<TaxonomyOption[]>([])
 const tags = ref<TaxonomyOption[]>([])
+const editingPublishedArticle = computed(() => articleStatus.value === 'PUBLISHED')
+const editorBusy = computed(() => saving.value || publishing.value || withdrawing.value)
+const editorLocked = computed(() => (
+  !canWrite.value
+  || publishing.value
+  || withdrawing.value
+  || (saving.value && editingPublishedArticle.value)
+))
 
 const form = reactive<ArticleInput>({
   title: '',
@@ -52,8 +65,13 @@ const form = reactive<ArticleInput>({
   canonicalUrl: '',
   version: 0
 })
+const selectedCategoryName = computed(() => (
+  categories.value.find((category) => category.id === Number(form.categoryId))?.name || '未分类'
+))
+const visibilityName = computed(() => form.visibility === 'PUBLIC' ? '公开' : '私密')
 
 const applyArticle = (article: ArticleDetail) => {
+  articleStatus.value = article.status
   Object.assign(form, {
     title: article.title,
     slug: article.slug,
@@ -101,11 +119,12 @@ const load = async () => {
     const [categoryOptions, tagOptions, mediaConfig] = await Promise.all([
       api.get<TaxonomyOption[]>('/admin/categories/options'),
       api.get<TaxonomyOption[]>('/admin/tags/options'),
-      api.get<{ configured: boolean }>('/admin/media/config')
+      api.get<{ configured: boolean, maxImageSize: number }>('/admin/media/config')
     ])
     categories.value = categoryOptions
     tags.value = tagOptions
     ossConfigured.value = mediaConfig.configured
+    maxImageSize.value = mediaConfig.maxImageSize
     if (id.value !== null) {
       applyArticle(await api.get<ArticleDetail>(`/admin/articles/${id.value}`))
     }
@@ -118,48 +137,36 @@ const load = async () => {
   }
 }
 
-const chooseImage = () => imageInput.value?.click()
-
-const uploadImage = async (event: Event) => {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0]
-  input.value = ''
-  if (!file || imageUploading.value) return
-  const alt = file.name.replace(/\.[^.]+$/, '')
-  const body = new FormData()
-  body.append('file', file)
-  body.append('altText', alt)
-  imageUploading.value = true
-  error.value = ''
-  try {
-    const asset = await api.postForm<MediaAsset>('/admin/media', body)
-    const separator = form.contentMarkdown && !form.contentMarkdown.endsWith('\n') ? '\n\n' : ''
-    form.contentMarkdown += `${separator}![${asset.altText || alt}](${asset.url})\n`
-  } catch (cause) {
-    error.value = cause instanceof ApiError ? cause.message : '图片上传失败'
-  } finally {
-    imageUploading.value = false
-  }
-}
-
 const save = async (automatic = false) => {
-  if (!canWrite.value) return
+  if (!canWrite.value) return null
+  if (automatic && editingPublishedArticle.value) return null
+  if (
+    !automatic
+    && editingPublishedArticle.value
+    && saveState.value !== 'dirty'
+    && saveState.value !== 'error'
+  ) return null
   if (saving.value) {
     if (automatic) {
       clearTimeout(saveTimer)
       saveTimer = setTimeout(() => void save(true), 1000)
     }
-    return
+    return null
   }
   error.value = ''
+  if (!automatic) success.value = ''
   const missingFields = [
     ...(!form.title.trim() ? ['标题'] : []),
     ...(!form.slug.trim() ? ['slug'] : [])
   ]
   if (missingFields.length > 0) {
     if (!automatic) error.value = `${missingFields.join('和')}不能为空`
-    return
+    return null
   }
+  if (
+    editingPublishedArticle.value
+    && !window.confirm('这会立即更新公开站上的文章内容，确认继续吗？')
+  ) return null
   saving.value = true
   saveState.value = 'saving'
   try {
@@ -183,6 +190,7 @@ const save = async (automatic = false) => {
     const article = wasNew
       ? await api.post<ArticleDetail>('/admin/articles', payload)
       : await api.put<ArticleDetail>(`/admin/articles/${id.value}`, payload)
+    articleStatus.value = article.status
     if (JSON.stringify(form) === sentFingerprint) {
       applyArticle(article)
       saveState.value = 'saved'
@@ -196,11 +204,95 @@ const save = async (automatic = false) => {
       clearTimeout(saveTimer)
       saveTimer = setTimeout(() => void save(true), 500)
     }
+    if (!automatic) {
+      success.value = editingPublishedArticle.value ? '公开站文章内容已更新。' : '草稿已保存。'
+    }
+    return article
   } catch (cause) {
     error.value = cause instanceof ApiError ? cause.message : '保存失败'
     saveState.value = 'error'
+    return null
   } finally {
     saving.value = false
+  }
+}
+
+const openPublishConfirmation = () => {
+  if (!canWrite.value || editorBusy.value || editingPublishedArticle.value) return
+  error.value = ''
+  success.value = ''
+  const missingFields = [
+    ...(!form.title.trim() ? ['标题'] : []),
+    ...(!form.slug.trim() ? ['slug'] : [])
+  ]
+  if (missingFields.length > 0) {
+    error.value = `${missingFields.join('和')}不能为空，无法发布`
+    return
+  }
+  publishConfirmationOpen.value = true
+}
+
+const publishArticle = async () => {
+  if (!canWrite.value || editorBusy.value || editingPublishedArticle.value) return
+  publishing.value = true
+  error.value = ''
+  success.value = ''
+  clearTimeout(saveTimer)
+  try {
+    const saved = await save(false)
+    if (!saved) return
+    const published = await api.post<ArticleDetail>(`/admin/articles/${saved.id}/publish`)
+    applyArticle(published)
+    saveState.value = 'saved'
+    savedAt.value = new Date().toLocaleTimeString()
+    publishConfirmationOpen.value = false
+    success.value = form.visibility === 'PUBLIC'
+      ? '文章已发布到公开站。'
+      : '文章已发布，当前可见性为私密。'
+  } catch (cause) {
+    success.value = ''
+    const detail = cause instanceof ApiError ? cause.message : '发布失败'
+    error.value = `草稿已保存，但${detail}`
+  } finally {
+    publishing.value = false
+  }
+}
+
+const withdrawArticle = async () => {
+  if (!canWrite.value || editorBusy.value || !editingPublishedArticle.value || id.value === null) return
+  const hasPendingChanges = saveState.value === 'dirty' || saveState.value === 'error'
+  const message = hasPendingChanges
+    ? '文章将从公开站撤回，当前编辑内容会保存为草稿。确认继续吗？'
+    : '确认将这篇文章从公开站撤回并转为草稿吗？'
+  if (!window.confirm(message)) return
+
+  withdrawing.value = true
+  error.value = ''
+  success.value = ''
+  clearTimeout(saveTimer)
+  try {
+    const withdrawn = await api.post<ArticleDetail>(`/admin/articles/${id.value}/withdraw`)
+    if (hasPendingChanges) {
+      articleStatus.value = withdrawn.status
+      form.version = withdrawn.version
+      saveState.value = 'dirty'
+      const draft = await save(false)
+      if (!draft) {
+        error.value = `文章已撤回，但当前编辑内容保存失败：${error.value || '请重试保存草稿'}`
+        return
+      }
+    } else {
+      applyArticle(withdrawn)
+      saveState.value = 'saved'
+    }
+    savedAt.value = new Date().toLocaleTimeString()
+    success.value = hasPendingChanges
+      ? '文章已撤回，当前编辑内容已保存为草稿。'
+      : '文章已撤回并转为草稿。'
+  } catch (cause) {
+    error.value = cause instanceof ApiError ? cause.message : '撤回失败'
+  } finally {
+    withdrawing.value = false
   }
 }
 
@@ -209,9 +301,10 @@ watch(
   () => {
     if (!ready.value) return
     if (JSON.stringify(form) === savedFingerprint) return
+    success.value = ''
     saveState.value = 'dirty'
     schedulePreview()
-    if (!isNew.value && canWrite.value) {
+    if (!isNew.value && !editingPublishedArticle.value && canWrite.value) {
       clearTimeout(saveTimer)
       saveTimer = setTimeout(() => void save(true), 1800)
     }
@@ -234,22 +327,110 @@ onBeforeUnmount(() => {
         <p class="kicker">CONTENT / {{ isNew ? 'NEW DRAFT' : 'EDIT' }}</p>
       </div>
       <div class="editor-actions">
-        <small v-if="saveState === 'dirty'">等待自动保存</small>
+        <small v-if="saveState === 'dirty'">
+          {{ editingPublishedArticle ? '有待确认的线上更新' : '等待自动保存' }}
+        </small>
         <small v-else-if="saveState === 'saving'">正在保存…</small>
-        <small v-else-if="saveState === 'error'">自动保存失败</small>
+        <small v-else-if="saveState === 'error'">
+          {{ editingPublishedArticle ? '更新发布失败' : '自动保存失败' }}
+        </small>
         <small v-else-if="savedAt">已保存于 {{ savedAt }}</small>
         <button
+          v-if="editingPublishedArticle"
+          class="editor-secondary-action"
+          type="button"
+          :disabled="editorBusy || !canWrite"
+          @click="withdrawArticle"
+        >
+          {{ withdrawing ? '撤回中…' : '撤回为草稿' }}
+        </button>
+        <button
+          v-if="editingPublishedArticle"
           class="primary-action"
           type="button"
-          :disabled="saving || !canWrite"
+          :disabled="editorBusy || !canWrite || (saveState !== 'dirty' && saveState !== 'error')"
           @click="save(false)"
         >
-          {{ saving ? '保存中…' : isNew ? '创建草稿' : '保存更改' }}
+          {{ saving ? '更新中…' : '更新已发布内容' }}
+        </button>
+        <button
+          v-if="!editingPublishedArticle"
+          class="editor-secondary-action"
+          type="button"
+          :disabled="editorBusy || !canWrite"
+          @click="save(false)"
+        >
+          {{ saving ? '保存中…' : isNew ? '保存草稿' : '保存更改' }}
+        </button>
+        <button
+          v-if="!editingPublishedArticle"
+          class="primary-action"
+          type="button"
+          :disabled="editorBusy || !canWrite"
+          @click="openPublishConfirmation"
+        >
+          {{ publishing ? '发布中…' : '保存并发布' }}
         </button>
       </div>
     </header>
 
     <p v-if="error" class="page-error">{{ error }}</p>
+    <p v-if="success" class="editor-success" role="status">{{ success }}</p>
+    <p v-if="editingPublishedArticle && !loading" class="config-notice">
+      当前文章已发布。编辑内容不会自动同步到公开站；确认无误后，请点击“更新已发布内容”。
+    </p>
+    <section
+      v-if="publishConfirmationOpen"
+      class="publish-confirmation"
+      role="dialog"
+      aria-labelledby="publish-confirmation-title"
+    >
+      <header>
+        <div>
+          <small>PUBLISH CHECK</small>
+          <h2 id="publish-confirmation-title">确认保存并发布</h2>
+        </div>
+        <button
+          type="button"
+          aria-label="关闭发布确认"
+          :disabled="editorBusy"
+          @click="publishConfirmationOpen = false"
+        >×</button>
+      </header>
+      <dl>
+        <div>
+          <dt>文章</dt>
+          <dd>{{ form.title }}</dd>
+        </div>
+        <div>
+          <dt>可见性</dt>
+          <dd>{{ visibilityName }}</dd>
+        </div>
+        <div>
+          <dt>分类</dt>
+          <dd>{{ selectedCategoryName }}</dd>
+        </div>
+        <div>
+          <dt>评论</dt>
+          <dd>{{ form.allowComment ? '允许评论' : '关闭评论' }}</dd>
+        </div>
+      </dl>
+      <p>系统会先保存当前编辑内容，保存成功后再执行发布。</p>
+      <footer>
+        <button
+          type="button"
+          class="editor-secondary-action"
+          :disabled="editorBusy"
+          @click="publishConfirmationOpen = false"
+        >继续编辑</button>
+        <button
+          type="button"
+          class="primary-action"
+          :disabled="editorBusy"
+          @click="publishArticle"
+        >{{ publishing ? '发布中…' : '确认保存并发布' }}</button>
+      </footer>
+    </section>
     <div v-if="loading" class="editor-loading">正在打开稿纸…</div>
 
     <form v-else class="article-editor" @submit.prevent="save(false)">
@@ -261,7 +442,7 @@ onBeforeUnmount(() => {
           maxlength="200"
           placeholder="文章标题（必填）"
           required
-          :readonly="!canWrite"
+          :readonly="editorLocked"
         >
         <label>
           <span>URL 标识（Slug，必填）</span>
@@ -274,7 +455,7 @@ onBeforeUnmount(() => {
               pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
               placeholder="my-first-article"
               required
-              :readonly="!canWrite"
+              :readonly="editorLocked"
             >
           </div>
         </label>
@@ -285,48 +466,20 @@ onBeforeUnmount(() => {
             rows="3"
             maxlength="600"
             placeholder="用一两句话告诉读者这篇文章讲什么。"
-            :readonly="!canWrite"
+            :readonly="editorLocked"
           />
         </label>
-        <div class="markdown-workbench">
-          <label class="markdown-field">
-            <span class="markdown-label">
-              MARKDOWN 正文
-              <input
-                ref="imageInput"
-                class="visually-hidden"
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
-                @change="uploadImage"
-              >
-              <button
-                v-if="canWrite"
-                type="button"
-                :disabled="imageUploading || !ossConfigured"
-                @click="chooseImage"
-              >
-                {{ imageUploading ? '上传中…' : ossConfigured ? '插入图片' : 'OSS 未配置' }}
-              </button>
-            </span>
-            <textarea
-              v-model="form.contentMarkdown"
-              rows="24"
-              placeholder="# 从这里开始写…"
-              :readonly="!canWrite"
-            />
-          </label>
-          <section class="markdown-preview">
-            <div>
-              <span>实时预览</span>
-              <small>
-                {{ previewing ? '渲染中…' : `${previewStats.wordCount} 字 · ${previewStats.readingMinutes} 分钟` }}
-              </small>
-            </div>
-            <!-- HTML is rendered and sanitized by the backend Markdown service. -->
-            <article v-if="previewHtml" v-html="previewHtml" />
-            <p v-else>预览会在你开始写作后出现。</p>
-          </section>
-        </div>
+        <WordLikeEditor
+          v-model="form.contentMarkdown"
+          :preview-html="previewHtml"
+          :previewing="previewing"
+          :word-count="previewStats.wordCount"
+          :reading-minutes="previewStats.readingMinutes"
+          :readonly="editorLocked"
+          :image-upload-enabled="ossConfigured"
+          :max-image-size="maxImageSize"
+          @error="error = $event"
+        />
       </main>
 
       <aside>
@@ -334,14 +487,14 @@ onBeforeUnmount(() => {
           <h2>发布设置</h2>
           <label>
             <span>可见性</span>
-            <select v-model="form.visibility" :disabled="!canWrite">
+            <select v-model="form.visibility" :disabled="editorLocked">
               <option value="PUBLIC">公开</option>
               <option value="PRIVATE">私密</option>
             </select>
           </label>
           <label>
             <span>分类</span>
-            <select v-model="form.categoryId" :disabled="!canWrite">
+            <select v-model="form.categoryId" :disabled="editorLocked">
               <option :value="null">未分类</option>
               <option v-for="item in categories" :key="item.id" :value="item.id">
                 {{ item.name }}
@@ -355,18 +508,18 @@ onBeforeUnmount(() => {
                 v-model="form.tagIds"
                 type="checkbox"
                 :value="item.id"
-                :disabled="!canWrite"
+                :disabled="editorLocked"
               >
               <span>{{ item.name }}</span>
             </label>
             <small v-if="tags.length === 0">暂无标签，可稍后在标签管理中添加。</small>
           </fieldset>
           <label class="check-row">
-            <input v-model="form.pinned" type="checkbox" :disabled="!canWrite">
+            <input v-model="form.pinned" type="checkbox" :disabled="editorLocked">
             <span>置顶文章</span>
           </label>
           <label class="check-row">
-            <input v-model="form.allowComment" type="checkbox" :disabled="!canWrite">
+            <input v-model="form.allowComment" type="checkbox" :disabled="editorLocked">
             <span>允许评论</span>
           </label>
         </section>
@@ -375,7 +528,7 @@ onBeforeUnmount(() => {
           <h2>SEO</h2>
           <label>
             <span>SEO 标题</span>
-            <input v-model="form.metaTitle" maxlength="200" :readonly="!canWrite">
+            <input v-model="form.metaTitle" maxlength="200" :readonly="editorLocked">
           </label>
           <label>
             <span>SEO 描述</span>
@@ -383,15 +536,153 @@ onBeforeUnmount(() => {
               v-model="form.metaDescription"
               rows="4"
               maxlength="320"
-              :readonly="!canWrite"
+              :readonly="editorLocked"
             />
           </label>
           <label>
             <span>Canonical URL</span>
-            <input v-model="form.canonicalUrl" maxlength="500" :readonly="!canWrite">
+            <input v-model="form.canonicalUrl" maxlength="500" :readonly="editorLocked">
           </label>
         </section>
       </aside>
     </form>
   </div>
 </template>
+
+<style scoped>
+.editor-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.editor-secondary-action {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 15px;
+  color: var(--admin-text);
+  border: 1px solid var(--admin-border);
+  border-radius: 6px;
+  background: var(--admin-surface);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.editor-secondary-action:hover:not(:disabled) {
+  color: var(--admin-primary);
+  border-color: var(--admin-primary);
+}
+
+.editor-secondary-action:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+.editor-success {
+  margin: 0 0 16px;
+  padding: 11px 13px;
+  color: var(--admin-success);
+  border: 1px solid color-mix(in srgb, var(--admin-success) 24%, var(--admin-border));
+  border-radius: 6px;
+  background: var(--admin-success-soft);
+  font-size: 12px;
+}
+
+.publish-confirmation {
+  display: grid;
+  gap: 16px;
+  margin: 0 0 18px;
+  padding: 18px;
+  color: var(--admin-text);
+  border: 1px solid color-mix(in srgb, var(--admin-primary) 34%, var(--admin-border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--admin-primary) 5%, var(--admin-surface));
+  box-shadow: 0 12px 30px rgb(8 24 42 / 8%);
+}
+
+.publish-confirmation > header,
+.publish-confirmation > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.publish-confirmation header small {
+  color: var(--admin-primary);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .14em;
+}
+
+.publish-confirmation h2 {
+  margin: 3px 0 0;
+  font-size: 18px;
+}
+
+.publish-confirmation header > button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  padding: 0;
+  place-items: center;
+  color: var(--admin-subtle);
+  border: 1px solid var(--admin-border);
+  border-radius: 50%;
+  background: var(--admin-surface);
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.publish-confirmation dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.publish-confirmation dl > div {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--admin-divider);
+  border-radius: 7px;
+  background: var(--admin-surface);
+}
+
+.publish-confirmation dt {
+  margin-bottom: 4px;
+  color: var(--admin-subtle);
+  font-size: 10px;
+}
+
+.publish-confirmation dd {
+  margin: 0;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.publish-confirmation > p {
+  margin: 0;
+  color: var(--admin-subtle);
+  font-size: 11px;
+}
+
+.publish-confirmation > footer {
+  justify-content: flex-end;
+}
+
+@media (max-width: 760px) {
+  .editor-actions {
+    justify-content: flex-start;
+  }
+
+  .publish-confirmation dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+</style>

@@ -3,9 +3,9 @@ import type {
   ArticleDetail,
   ArticleNavigation,
   ArticlePage,
-  CaptchaChallenge,
   CommentInput,
   CommentSubmitResponse,
+  GitHubContributions,
   HomeResponse,
   InteractionState,
   PublicComment,
@@ -24,6 +24,7 @@ export function useBlogApi() {
     home: () => request<HomeResponse>('/public/home'),
     profile: () => request<SiteProfile>('/public/profile'),
     statistics: () => request<SiteStatistics>('/public/statistics'),
+    githubContributions: () => request<GitHubContributions>('/public/github-contributions'),
     articles: (query?: Record<string, string | number | undefined>) =>
       request<ArticlePage>('/public/articles', query),
     article: (slug: string) => request<ArticleDetail>(`/public/articles/${encodeURIComponent(slug)}`),
@@ -40,7 +41,6 @@ export function useBlogApi() {
     archives: () => request<ArchiveMonth[]>('/public/archives'),
     search: (keyword: string, page: number) =>
       request<ArticlePage>('/public/search', { keyword, page }),
-    captcha: () => request<CaptchaChallenge>('/public/captcha'),
     comments: (articleId: number) =>
       request<PublicComment[]>(`/public/articles/${articleId}/comments`),
     submitComment: (articleId: number, body: CommentInput) =>

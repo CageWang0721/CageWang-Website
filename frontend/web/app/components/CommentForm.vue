@@ -18,31 +18,11 @@ const form = reactive<CommentInput>({
   website: '',
   content: '',
   parentId: props.parentId,
-  notifyOnReply: true,
-  captchaId: '',
-  captchaAnswer: ''
+  notifyOnReply: false
 })
 const submitting = ref(false)
-const captchaLoading = ref(false)
-const captchaQuestion = ref('')
 const error = ref('')
 const success = ref('')
-
-const loadCaptcha = async () => {
-  captchaLoading.value = true
-  try {
-    const challenge = await api.captcha()
-    form.captchaId = challenge.id
-    form.captchaAnswer = ''
-    captchaQuestion.value = challenge.question
-  } catch {
-    captchaQuestion.value = '安全验证暂时不可用'
-  } finally {
-    captchaLoading.value = false
-  }
-}
-
-onMounted(loadCaptcha)
 
 const submit = async () => {
   if (submitting.value) return
@@ -53,11 +33,9 @@ const submit = async () => {
     const result = await api.submitComment(props.articleId, form)
     success.value = result.message
     form.content = ''
-    await loadCaptcha()
     emit('submitted')
   } catch (cause: any) {
     error.value = cause?.data?.detail || cause?.message || '提交失败，请稍后重试'
-    await loadCaptcha()
   } finally {
     submitting.value = false
   }
@@ -91,29 +69,9 @@ const submit = async () => {
         placeholder="支持 Markdown；审核通过后公开显示。"
       />
     </label>
-    <div class="captcha-row">
-      <label>
-        <span>安全验证 *</span>
-        <input
-          v-model.trim="form.captchaAnswer"
-          required
-          maxlength="16"
-          inputmode="numeric"
-          :placeholder="captchaQuestion"
-          :disabled="captchaLoading || !form.captchaId"
-        >
-      </label>
-      <button type="button" :disabled="captchaLoading" @click="loadCaptcha">
-        {{ captchaLoading ? '生成中…' : '换一道' }}
-      </button>
-    </div>
     <div class="comment-submit">
-      <label class="notify-choice">
-        <input v-model="form.notifyOnReply" type="checkbox" :disabled="!form.email">
-        <span>有新回复时邮件通知我</span>
-      </label>
       <button class="button" type="submit" :disabled="submitting">
-        {{ submitting ? '正在投递…' : compact ? '提交回复' : '提交审核' }}
+        {{ submitting ? '正在投递…' : compact ? '提交回复' : '提交' }}
       </button>
     </div>
     <p v-if="error" class="form-message error">{{ error }}</p>

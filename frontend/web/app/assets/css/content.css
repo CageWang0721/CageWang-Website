@@ -585,6 +585,147 @@
   border-radius: 3px;
 }
 
+/* Safe presentation classes emitted by the management editor. */
+.prose .wc-font--sans {
+  font-family: var(--sans);
+}
+
+.prose .wc-font--serif {
+  font-family: var(--serif);
+}
+
+.prose .wc-font--mono {
+  font-family: "SFMono-Regular", Consolas, monospace;
+}
+
+.prose .wc-size--small {
+  font-size: .86em;
+}
+
+.prose .wc-size--normal {
+  font-size: 1em;
+}
+
+.prose .wc-size--large {
+  font-size: 1.22em;
+}
+
+.prose .wc-size--xlarge {
+  font-size: 1.55em;
+  line-height: 1.5;
+}
+
+.prose .wc-color--accent {
+  color: var(--accent);
+}
+
+.prose .wc-color--red {
+  color: #c83b3b;
+}
+
+.prose .wc-color--blue {
+  color: #2563b8;
+}
+
+.prose .wc-color--green {
+  color: #278153;
+}
+
+.prose .wc-color--muted {
+  color: var(--muted);
+}
+
+.prose .wc-highlight--yellow,
+.prose .wc-highlight--green,
+.prose .wc-highlight--pink {
+  padding-inline: .12em;
+  color: #222;
+  border-radius: 2px;
+  box-decoration-break: clone;
+}
+
+.prose .wc-highlight--yellow {
+  background: #ffe98b;
+}
+
+.prose .wc-highlight--green {
+  background: #bcebc9;
+}
+
+.prose .wc-highlight--pink {
+  background: #ffd1dd;
+}
+
+.prose .wc-align--left,
+.prose .wc-align--center,
+.prose .wc-align--right {
+  width: 100%;
+  display: block;
+}
+
+.prose .wc-align--left {
+  text-align: left;
+}
+
+.prose .wc-align--center {
+  text-align: center;
+}
+
+.prose .wc-align--right {
+  text-align: right;
+}
+
+.prose .wc-image {
+  width: 100%;
+  max-width: 100%;
+  margin-block: 2.2em;
+}
+
+.prose .wc-image--small {
+  width: min(100%, 360px);
+}
+
+.prose .wc-image--medium {
+  width: min(100%, 560px);
+}
+
+.prose .wc-image--large {
+  width: min(100%, 760px);
+}
+
+.prose .wc-image--full {
+  width: 100%;
+}
+
+.prose .wc-image--left {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+.prose .wc-image--center {
+  margin-inline: auto;
+}
+
+.prose .wc-image--right {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.prose .wc-image img {
+  width: 100%;
+  display: block;
+  margin: 0;
+}
+
+.prose .wc-image figcaption {
+  margin-top: 10px;
+  color: var(--muted);
+  font-family: var(--sans);
+  font-size: 12px;
+  line-height: 1.65;
+  text-align: center;
+}
+
 .prose table {
   width: 100%;
   margin-block: 2em;

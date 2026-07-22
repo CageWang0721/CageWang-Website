@@ -11,12 +11,25 @@ import type { MediaAsset } from '../types/media'
 type SiteProfile = {
   avatarUrl: string
   signature: string
+  musicEnabled: boolean
+  musicTitle: string
+  musicArtist: string
+  musicUrl: string
+  musicCoverUrl: string
 }
 
-const defaultAvatarUrl = '/images/wineclouds-avatar.png'
+const defaultAvatarUrl = '/images/wineclouds-avatar.webp'
 const auth = useAuthStore()
 const canWrite = computed(() => auth.user?.role === 'ADMIN')
-const form = reactive<SiteProfile>({ avatarUrl: '', signature: '' })
+const form = reactive<SiteProfile>({
+  avatarUrl: '',
+  signature: '',
+  musicEnabled: false,
+  musicTitle: '',
+  musicArtist: '',
+  musicUrl: '',
+  musicCoverUrl: ''
+})
 const loading = ref(true)
 const saving = ref(false)
 const uploading = ref(false)
@@ -42,6 +55,11 @@ const load = async () => {
     ])
     form.avatarUrl = profile.avatarUrl
     form.signature = profile.signature
+    form.musicEnabled = profile.musicEnabled
+    form.musicTitle = profile.musicTitle
+    form.musicArtist = profile.musicArtist
+    form.musicUrl = profile.musicUrl
+    form.musicCoverUrl = profile.musicCoverUrl
     mediaConfigured.value = mediaConfig.configured
     maxImageSize.value = mediaConfig.maxImageSize
   } catch (cause) {
@@ -59,10 +77,20 @@ const save = async () => {
   try {
     const profile = await api.put<SiteProfile>('/admin/profile', {
       avatarUrl: form.avatarUrl,
-      signature: form.signature
+      signature: form.signature,
+      musicEnabled: form.musicEnabled,
+      musicTitle: form.musicTitle,
+      musicArtist: form.musicArtist,
+      musicUrl: form.musicUrl,
+      musicCoverUrl: form.musicCoverUrl
     })
     form.avatarUrl = profile.avatarUrl
     form.signature = profile.signature
+    form.musicEnabled = profile.musicEnabled
+    form.musicTitle = profile.musicTitle
+    form.musicArtist = profile.musicArtist
+    form.musicUrl = profile.musicUrl
+    form.musicCoverUrl = profile.musicCoverUrl
     success.value = '站点资料已保存；切换回公开站时会自动刷新资料。'
   } catch (cause) {
     error.value = cause instanceof ApiError ? cause.message : '站点资料保存失败'
@@ -176,6 +204,35 @@ onMounted(load)
           />
           <small>{{ form.signature.length }} / 160</small>
         </label>
+
+        <fieldset class="music-settings">
+          <legend>右侧播放器</legend>
+          <label class="music-toggle">
+            <input v-model="form.musicEnabled" :disabled="!canWrite" type="checkbox">
+            <span>在公开站启用播放器</span>
+          </label>
+
+          <div v-if="form.musicEnabled" class="music-settings-fields">
+            <label>
+              <span>曲目名称</span>
+              <input v-model.trim="form.musicTitle" :disabled="!canWrite" maxlength="120" placeholder="夜间播放列表">
+            </label>
+            <label>
+              <span>作者</span>
+              <input v-model.trim="form.musicArtist" :disabled="!canWrite" maxlength="120" placeholder="Wineclouds">
+            </label>
+            <label>
+              <span>音乐地址</span>
+              <input v-model.trim="form.musicUrl" :disabled="!canWrite" maxlength="1000" placeholder="https://cdn.example.com/track.mp3">
+              <small>支持站内路径或 HTTPS 音频地址；请使用拥有播放权的音频文件。</small>
+            </label>
+            <label>
+              <span>专辑封面地址</span>
+              <input v-model.trim="form.musicCoverUrl" :disabled="!canWrite" maxlength="1000" placeholder="/images/album-cover.webp">
+              <small>留空时使用站点头像作为圆形唱片封面。</small>
+            </label>
+          </div>
+        </fieldset>
 
         <div class="profile-form-actions">
           <button class="primary-action" type="submit" :disabled="!canWrite || saving">

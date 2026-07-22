@@ -14,7 +14,8 @@ fi
 
 cleanup() {
   "${compose[@]}" exec -T mysql sh -c \
-    'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "DROP DATABASE IF EXISTS `'"$drill_database"'`"' \
+    'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "DROP DATABASE IF EXISTS \`$1\`"' \
+    sh "$drill_database" \
     >/dev/null 2>&1 || true
 }
 trap cleanup EXIT

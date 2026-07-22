@@ -24,7 +24,10 @@ export default defineNuxtConfig({
         },
         { name: 'theme-color', content: '#f4f1e9' }
       ],
-      link: [{ rel: 'alternate', type: 'application/rss+xml', title: 'Wineclouds’Blog RSS', href: '/rss.xml' }],
+      link: [
+        { rel: 'icon', type: 'image/png', sizes: '512x512', href: '/favicon.png' },
+        { rel: 'alternate', type: 'application/rss+xml', title: 'Wineclouds’Blog RSS', href: '/rss.xml' }
+      ],
       script: [{
         innerHTML: "try{var t=localStorage.getItem('blog-theme');if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches))document.documentElement.dataset.theme='dark'}catch(e){}"
       }]

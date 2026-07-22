@@ -1,6 +1,8 @@
 package com.example.blog.article.service;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import org.commonmark.Extension;
@@ -24,25 +26,56 @@ public class MarkdownService {
             StrikethroughExtension.create(),
             AutolinkExtension.create()
     );
+    private static final Set<String> ALLOWED_CONTENT_CLASSES = Set.of(
+            "wc-font--sans", "wc-font--serif", "wc-font--mono",
+            "wc-size--small", "wc-size--normal", "wc-size--large", "wc-size--xlarge",
+            "wc-color--accent", "wc-color--red", "wc-color--blue", "wc-color--green", "wc-color--muted",
+            "wc-highlight--yellow", "wc-highlight--green", "wc-highlight--pink",
+            "wc-align--left", "wc-align--center", "wc-align--right",
+            "wc-image", "wc-image--left", "wc-image--center", "wc-image--right",
+            "wc-image--small", "wc-image--medium", "wc-image--large", "wc-image--full"
+    );
 
     private final Parser parser = Parser.builder().extensions(EXTENSIONS).build();
-    private final HtmlRenderer renderer = HtmlRenderer.builder()
+    private final HtmlRenderer articleRenderer = HtmlRenderer.builder()
             .extensions(EXTENSIONS)
+            // The editor emits a small set of presentation tags. Jsoup still sanitizes
+            // every rendered result and the class allowlist below removes unknown styles.
+            .escapeHtml(false)
+            .build();
+    private final HtmlRenderer commentRenderer = HtmlRenderer.builder()
+            .extensions(EXTENSIONS)
+            // Public comments support Markdown, but raw HTML is always displayed as text.
             .escapeHtml(true)
             .build();
-    private final Safelist safelist = Safelist.relaxed()
-            .addTags("table", "thead", "tbody", "tfoot", "tr", "th", "td", "del")
-            .addAttributes("th", "align")
-            .addAttributes("td", "align")
-            .addProtocols("img", "src", "http", "https")
-            .addProtocols("a", "href", "http", "https", "mailto");
+    private final Safelist articleSafelist = baseSafelist()
+            .addTags("figure", "figcaption", "mark", "u", "sup", "sub")
+            .addAttributes(":all", "class")
+            .addAttributes("figure", "class");
+    private final Safelist commentSafelist = baseSafelist();
 
-    public RenderedMarkdown render(String markdown) {
+    public RenderedMarkdown renderArticle(String markdown) {
+        return render(markdown, articleRenderer, articleSafelist, true);
+    }
+
+    public RenderedMarkdown renderComment(String markdown) {
+        return render(markdown, commentRenderer, commentSafelist, false);
+    }
+
+    private RenderedMarkdown render(
+            String markdown,
+            HtmlRenderer renderer,
+            Safelist safelist,
+            boolean retainArticleClasses
+    ) {
         String source = markdown == null ? "" : markdown;
         String rawHtml = renderer.render(parser.parse(source));
         Document.OutputSettings outputSettings = new Document.OutputSettings().prettyPrint(false);
         String cleanHtml = Jsoup.clean(rawHtml, "", safelist, outputSettings);
         Document document = Jsoup.parseBodyFragment(cleanHtml);
+        if (retainArticleClasses) {
+            retainAllowedArticleClasses(document);
+        }
         for (Element link : document.select("a[href]")) {
             if (link.hasAttr("href") && isExternal(link.attr("href"))) {
                 link.attr("rel", "noopener noreferrer nofollow");
@@ -53,6 +86,27 @@ public class MarkdownService {
         int wordCount = countWords(plain);
         int readingMinutes = wordCount == 0 ? 0 : Math.max(1, (int) Math.ceil(wordCount / 300.0));
         return new RenderedMarkdown(html, plain, wordCount, readingMinutes);
+    }
+
+    private static Safelist baseSafelist() {
+        return Safelist.relaxed()
+                .addTags("table", "thead", "tbody", "tfoot", "tr", "th", "td", "del")
+                .addAttributes("th", "align")
+                .addAttributes("td", "align")
+                .addProtocols("img", "src", "http", "https")
+                .addProtocols("a", "href", "http", "https", "mailto");
+    }
+
+    private void retainAllowedArticleClasses(Document document) {
+        for (Element styled : document.select("[class]")) {
+            Set<String> classes = new LinkedHashSet<>(styled.classNames());
+            classes.retainAll(ALLOWED_CONTENT_CLASSES);
+            if (classes.isEmpty()) {
+                styled.removeAttr("class");
+            } else {
+                styled.classNames(classes);
+            }
+        }
     }
 
     private boolean isExternal(String href) {

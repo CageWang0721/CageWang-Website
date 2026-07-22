@@ -2,11 +2,22 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
 import { ApiError } from '@personal-blog/api-client'
-import * as echarts from 'echarts'
+import { LineChart } from 'echarts/charts'
+import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
+import * as echarts from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
 
 import { api } from '../services/api'
 import { useAuthStore } from '../stores/auth'
 import type { DashboardResponse } from '../types/interaction'
+
+echarts.use([
+  LineChart,
+  GridComponent,
+  LegendComponent,
+  TooltipComponent,
+  CanvasRenderer
+])
 
 const dashboard = ref<DashboardResponse | null>(null)
 const apiError = ref('')

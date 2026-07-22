@@ -41,10 +41,6 @@ final class CommentPolicy {
         return content;
     }
 
-    boolean requiresCaptcha(boolean firstInteraction, String content) {
-        return firstInteraction || LINK_PATTERN.matcher(content).find();
-    }
-
     String normalizeWebsite(String value) {
         String website = trimToNull(value);
         if (website == null) return null;

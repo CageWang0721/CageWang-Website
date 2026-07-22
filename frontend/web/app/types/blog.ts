@@ -60,6 +60,11 @@ export interface HomeResponse {
 export interface SiteProfile {
   avatarUrl: string
   signature: string
+  musicEnabled: boolean
+  musicTitle: string
+  musicArtist: string
+  musicUrl: string
+  musicCoverUrl: string
 }
 
 export interface SiteStatistics {
@@ -67,6 +72,18 @@ export interface SiteStatistics {
   todayViews: number
   totalViews: number
   totalVisitors: number
+}
+
+export interface GitHubContributionDay {
+  date: string
+  contributionCount: number
+}
+
+export interface GitHubContributions {
+  username: string
+  totalContributions: number
+  days: GitHubContributionDay[]
+  syncedAt: string | null
 }
 
 export interface ArchiveMonth {
@@ -97,8 +114,6 @@ export interface CommentInput {
   content: string
   parentId: number | null
   notifyOnReply: boolean
-  captchaId: string
-  captchaAnswer: string
 }
 
 export interface CommentSubmitResponse {
@@ -111,10 +126,4 @@ export interface InteractionState {
   likeCount: number
   commentCount: number
   liked: boolean
-}
-
-export interface CaptchaChallenge {
-  id: string
-  question: string
-  expiresAt: string
 }

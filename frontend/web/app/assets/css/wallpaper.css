@@ -35,7 +35,7 @@ body {
   z-index: -2;
   inset: 0;
   content: "";
-  background: #5966b7 url("/images/railen-wallpaper.png") center / cover no-repeat;
+  background: #5966b7 url("/images/railen-wallpaper.webp") center / cover no-repeat;
   pointer-events: none;
 }
 
@@ -45,6 +45,16 @@ body {
   inset: 0;
   content: "";
   background: linear-gradient(180deg, rgb(229 235 255 / 10%), rgb(227 235 255 / 26%));
+  pointer-events: none;
+}
+
+/*
+ * Keep acrylic surfaces in the paint tree while the wallpaper and backdrop
+ * layers warm up. display/visibility would postpone backdrop composition until
+ * the exact frame in which the surface becomes visible.
+ */
+.site-shell:not(.glass-render-ready) :is(.site-header, .site-footer) {
+  opacity: .001;
   pointer-events: none;
 }
 
@@ -333,6 +343,11 @@ main {
 }
 
 @media (prefers-reduced-transparency: reduce) {
+  .site-shell:not(.glass-render-ready) :is(.site-header, .site-footer) {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   .site-header,
   .article-card,
   .page-intro,

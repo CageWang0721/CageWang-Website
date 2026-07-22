@@ -18,6 +18,8 @@ fi
 export APP_VERSION="$version"
 compose=(docker compose --env-file "$ENV_FILE" -f "$ROOT_DIR/docker-compose.yml" -f "$ROOT_DIR/docker-compose.prod.yml")
 
+"$ROOT_DIR/deploy/scripts/preflight.sh" "$version"
+
 if "${compose[@]}" ps -q mysql | grep -q .; then
   "$ROOT_DIR/deploy/scripts/backup-mysql.sh"
 else
