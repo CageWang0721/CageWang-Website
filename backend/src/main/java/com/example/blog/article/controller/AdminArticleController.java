@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.blog.article.dto.ArticleDetailResponse;
 import com.example.blog.article.dto.ArticlePageResponse;
+import com.example.blog.article.dto.ArticlePublishRequest;
 import com.example.blog.article.dto.ArticleUpsertRequest;
 import com.example.blog.article.dto.TaxonomyOption;
 import com.example.blog.article.service.ArticleService;
@@ -88,8 +89,15 @@ public class AdminArticleController {
 
     @PostMapping("/articles/{id}/publish")
     @PreAuthorize("hasRole('ADMIN')")
-    ArticleDetailResponse publish(@PathVariable Long id, @AuthenticationPrincipal Jwt jwt) {
-        ArticleDetailResponse published = articleService.publish(id);
+    ArticleDetailResponse publish(
+            @PathVariable Long id,
+            @RequestBody(required = false) ArticlePublishRequest request,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        ArticleDetailResponse published = articleService.publish(
+                id,
+                request == null ? null : request.publishedAt()
+        );
         publicCache.invalidateAll();
         operationLogs.record(Long.valueOf(jwt.getSubject()), "ARTICLE", "PUBLISH", id, "{}");
         return published;

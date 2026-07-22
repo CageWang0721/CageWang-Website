@@ -29,6 +29,7 @@ const success = ref('')
 const savedAt = ref('')
 const saveState = ref<'idle' | 'dirty' | 'saving' | 'saved' | 'error'>('idle')
 const articleStatus = ref<ArticleStatus | null>(null)
+const publishAt = ref('')
 const publishConfirmationOpen = ref(false)
 const previewHtml = ref('')
 const previewStats = reactive({ wordCount: 0, readingMinutes: 0 })
@@ -41,7 +42,10 @@ let previewTimer: ReturnType<typeof setTimeout> | undefined
 let savedFingerprint = ''
 const categories = ref<TaxonomyOption[]>([])
 const tags = ref<TaxonomyOption[]>([])
-const editingPublishedArticle = computed(() => articleStatus.value === 'PUBLISHED')
+const editingScheduledArticle = computed(() => articleStatus.value === 'SCHEDULED')
+const editingPublishedArticle = computed(() => (
+  articleStatus.value === 'PUBLISHED' || articleStatus.value === 'SCHEDULED'
+))
 const editorBusy = computed(() => saving.value || publishing.value || withdrawing.value)
 const editorLocked = computed(() => (
   !canWrite.value
@@ -69,9 +73,29 @@ const selectedCategoryName = computed(() => (
   categories.value.find((category) => category.id === Number(form.categoryId))?.name || '未分类'
 ))
 const visibilityName = computed(() => form.visibility === 'PUBLIC' ? '公开' : '私密')
+const publishTimeName = computed(() => (
+  publishAt.value ? new Date(publishAt.value).toLocaleString() : '立即发布'
+))
+
+const parseApiDate = (value: string) => new Date(
+  /(?:Z|[+-]\d{2}:\d{2})$/.test(value) ? value : `${value}Z`
+)
+
+const toLocalDateTimeInput = (value: string) => {
+  const date = parseApiDate(value)
+  if (Number.isNaN(date.getTime())) return ''
+  const pad = (part: number) => String(part).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+    + `T${pad(date.getHours())}:${pad(date.getMinutes())}`
+}
+
+const formatApiDate = (value?: string) => (
+  value ? parseApiDate(value).toLocaleString() : publishTimeName.value
+)
 
 const applyArticle = (article: ArticleDetail) => {
   articleStatus.value = article.status
+  if (article.publishedAt) publishAt.value = toLocalDateTimeInput(article.publishedAt)
   Object.assign(form, {
     title: article.title,
     slug: article.slug,
@@ -165,7 +189,9 @@ const save = async (automatic = false) => {
   }
   if (
     editingPublishedArticle.value
-    && !window.confirm('这会立即更新公开站上的文章内容，确认继续吗？')
+    && !window.confirm(editingScheduledArticle.value
+      ? '这会更新等待定时发布的文章内容，确认继续吗？'
+      : '这会立即更新公开站上的文章内容，确认继续吗？')
   ) return null
   saving.value = true
   saveState.value = 'saving'
@@ -205,7 +231,9 @@ const save = async (automatic = false) => {
       saveTimer = setTimeout(() => void save(true), 500)
     }
     if (!automatic) {
-      success.value = editingPublishedArticle.value ? '公开站文章内容已更新。' : '草稿已保存。'
+      success.value = editingPublishedArticle.value
+        ? editingScheduledArticle.value ? '定时发布内容已更新。' : '公开站文章内容已更新。'
+        : '草稿已保存。'
     }
     return article
   } catch (cause) {
@@ -229,6 +257,10 @@ const openPublishConfirmation = () => {
     error.value = `${missingFields.join('和')}不能为空，无法发布`
     return
   }
+  if (publishAt.value && Number.isNaN(new Date(publishAt.value).getTime())) {
+    error.value = '发布时间格式无效，请重新选择'
+    return
+  }
   publishConfirmationOpen.value = true
 }
 
@@ -238,17 +270,23 @@ const publishArticle = async () => {
   error.value = ''
   success.value = ''
   clearTimeout(saveTimer)
+  const requestedPublishAt = publishAt.value
   try {
     const saved = await save(false)
     if (!saved) return
-    const published = await api.post<ArticleDetail>(`/admin/articles/${saved.id}/publish`)
+    const selectedDate = requestedPublishAt ? new Date(requestedPublishAt) : null
+    const published = await api.post<ArticleDetail>(`/admin/articles/${saved.id}/publish`, {
+      publishedAt: selectedDate?.toISOString() ?? null
+    })
     applyArticle(published)
     saveState.value = 'saved'
     savedAt.value = new Date().toLocaleTimeString()
     publishConfirmationOpen.value = false
-    success.value = form.visibility === 'PUBLIC'
-      ? '文章已发布到公开站。'
-      : '文章已发布，当前可见性为私密。'
+    success.value = published.status === 'SCHEDULED'
+      ? `文章已设置为 ${formatApiDate(published.publishedAt)} 定时发布。`
+      : form.visibility === 'PUBLIC'
+        ? '文章已发布到公开站。'
+        : '文章已发布，当前可见性为私密。'
   } catch (cause) {
     success.value = ''
     const detail = cause instanceof ApiError ? cause.message : '发布失败'
@@ -260,10 +298,15 @@ const publishArticle = async () => {
 
 const withdrawArticle = async () => {
   if (!canWrite.value || editorBusy.value || !editingPublishedArticle.value || id.value === null) return
+  const wasScheduled = editingScheduledArticle.value
   const hasPendingChanges = saveState.value === 'dirty' || saveState.value === 'error'
-  const message = hasPendingChanges
-    ? '文章将从公开站撤回，当前编辑内容会保存为草稿。确认继续吗？'
-    : '确认将这篇文章从公开站撤回并转为草稿吗？'
+  const message = wasScheduled
+    ? hasPendingChanges
+      ? '将取消定时发布，并把当前编辑内容保存为草稿。确认继续吗？'
+      : '确认取消定时发布并转为草稿吗？'
+    : hasPendingChanges
+      ? '文章将从公开站撤回，当前编辑内容会保存为草稿。确认继续吗？'
+      : '确认将这篇文章从公开站撤回并转为草稿吗？'
   if (!window.confirm(message)) return
 
   withdrawing.value = true
@@ -286,9 +329,11 @@ const withdrawArticle = async () => {
       saveState.value = 'saved'
     }
     savedAt.value = new Date().toLocaleTimeString()
-    success.value = hasPendingChanges
-      ? '文章已撤回，当前编辑内容已保存为草稿。'
-      : '文章已撤回并转为草稿。'
+    success.value = wasScheduled
+      ? '定时发布已取消，文章已转为草稿。'
+      : hasPendingChanges
+        ? '文章已撤回，当前编辑内容已保存为草稿。'
+        : '文章已撤回并转为草稿。'
   } catch (cause) {
     error.value = cause instanceof ApiError ? cause.message : '撤回失败'
   } finally {
@@ -342,7 +387,7 @@ onBeforeUnmount(() => {
           :disabled="editorBusy || !canWrite"
           @click="withdrawArticle"
         >
-          {{ withdrawing ? '撤回中…' : '撤回为草稿' }}
+          {{ withdrawing ? '处理中…' : editingScheduledArticle ? '取消定时发布' : '撤回为草稿' }}
         </button>
         <button
           v-if="editingPublishedArticle"
@@ -351,7 +396,7 @@ onBeforeUnmount(() => {
           :disabled="editorBusy || !canWrite || (saveState !== 'dirty' && saveState !== 'error')"
           @click="save(false)"
         >
-          {{ saving ? '更新中…' : '更新已发布内容' }}
+          {{ saving ? '更新中…' : editingScheduledArticle ? '更新定时内容' : '更新已发布内容' }}
         </button>
         <button
           v-if="!editingPublishedArticle"
@@ -377,7 +422,12 @@ onBeforeUnmount(() => {
     <p v-if="error" class="page-error">{{ error }}</p>
     <p v-if="success" class="editor-success" role="status">{{ success }}</p>
     <p v-if="editingPublishedArticle && !loading" class="config-notice">
-      当前文章已发布。编辑内容不会自动同步到公开站；确认无误后，请点击“更新已发布内容”。
+      <template v-if="editingScheduledArticle">
+        当前文章计划于 {{ publishTimeName }} 发布。编辑内容不会自动保存，请确认后点击“更新定时内容”。
+      </template>
+      <template v-else>
+        当前文章已发布。编辑内容不会自动同步到公开站；确认无误后，请点击“更新已发布内容”。
+      </template>
     </p>
     <section
       v-if="publishConfirmationOpen"
@@ -414,8 +464,12 @@ onBeforeUnmount(() => {
           <dt>评论</dt>
           <dd>{{ form.allowComment ? '允许评论' : '关闭评论' }}</dd>
         </div>
+        <div>
+          <dt>发布时间</dt>
+          <dd>{{ publishTimeName }}</dd>
+        </div>
       </dl>
-      <p>系统会先保存当前编辑内容，保存成功后再执行发布。</p>
+      <p>系统会先保存当前编辑内容；未来时间将进入定时发布，留空则立即发布。</p>
       <footer>
         <button
           type="button"
@@ -491,6 +545,18 @@ onBeforeUnmount(() => {
               <option value="PUBLIC">公开</option>
               <option value="PRIVATE">私密</option>
             </select>
+          </label>
+          <label>
+            <span>发布时间</span>
+            <input
+              v-model="publishAt"
+              type="datetime-local"
+              step="60"
+              :readonly="editorLocked || editingPublishedArticle"
+            >
+            <small v-if="editingScheduledArticle">到达该时间后自动公开发布。</small>
+            <small v-else-if="editingPublishedArticle">这是文章当前的发布时间。</small>
+            <small v-else>留空立即发布；也可选择过去时间或未来的定时发布时间。</small>
           </label>
           <label>
             <span>分类</span>
@@ -638,7 +704,7 @@ onBeforeUnmount(() => {
 
 .publish-confirmation dl {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 10px;
   margin: 0;
 }

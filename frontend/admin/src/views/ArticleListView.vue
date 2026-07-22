@@ -169,14 +169,14 @@ watch(
             type="button"
             @click="changeState(article, 'publish')"
           >
-            发布
+            {{ article.status === 'SCHEDULED' ? '立即发布' : '发布' }}
           </button>
           <button
-            v-if="canWrite && article.status === 'PUBLISHED'"
+            v-if="canWrite && (article.status === 'PUBLISHED' || article.status === 'SCHEDULED')"
             type="button"
             @click="changeState(article, 'withdraw')"
           >
-            撤回
+            {{ article.status === 'SCHEDULED' ? '取消定时' : '撤回' }}
           </button>
           <button v-if="canWrite" class="danger" type="button" @click="remove(article)">
             删除

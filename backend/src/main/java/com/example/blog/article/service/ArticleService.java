@@ -1,5 +1,6 @@
 package com.example.blog.article.service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -118,10 +119,19 @@ public class ArticleService {
     }
 
     @Transactional
-    public ArticleDetailResponse publish(Long id) {
+    public ArticleDetailResponse publish(Long id, Instant requestedPublishedAt) {
         ArticleRecord article = requireArticle(id);
         validatePublishable(article);
-        if (articleMapper.publish(id, LocalDateTime.now(ZoneOffset.UTC)) == 0) {
+        Instant now = Instant.now();
+        Instant publishInstant = requestedPublishedAt == null ? now : requestedPublishedAt;
+        LocalDateTime publishedAt = LocalDateTime.ofInstant(publishInstant, ZoneOffset.UTC);
+        boolean scheduled = publishInstant.isAfter(now);
+        if (articleMapper.publish(
+                id,
+                scheduled ? "SCHEDULED" : "PUBLISHED",
+                publishedAt,
+                scheduled ? publishedAt : null
+        ) == 0) {
             throw new ApiException(HttpStatus.CONFLICT, "文章当前状态不能发布");
         }
         return findById(id);

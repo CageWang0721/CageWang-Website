@@ -134,13 +134,24 @@
 
     <update id="publish">
         UPDATE article
-        SET status = 'PUBLISHED',
-            published_at = COALESCE(published_at, #{publishedAt}),
-            scheduled_at = NULL,
+        SET status = #{status},
+            published_at = #{publishedAt},
+            scheduled_at = #{scheduledAt},
             version = version + 1
         WHERE id = #{id}
           AND deleted_at IS NULL
           AND status IN ('DRAFT', 'SCHEDULED', 'ARCHIVED')
+    </update>
+
+    <update id="publishDueScheduled">
+        UPDATE article
+        SET status = 'PUBLISHED',
+            published_at = scheduled_at,
+            scheduled_at = NULL,
+            version = version + 1
+        WHERE deleted_at IS NULL
+          AND status = 'SCHEDULED'
+          AND scheduled_at &lt;= #{now}
     </update>
 
     <update id="withdraw">
@@ -148,7 +159,9 @@
         SET status = 'DRAFT',
             scheduled_at = NULL,
             version = version + 1
-        WHERE id = #{id} AND deleted_at IS NULL AND status = 'PUBLISHED'
+        WHERE id = #{id}
+          AND deleted_at IS NULL
+          AND status IN ('PUBLISHED', 'SCHEDULED')
     </update>
 
     <update id="softDelete">

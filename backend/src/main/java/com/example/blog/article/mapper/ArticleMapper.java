@@ -82,7 +82,14 @@ public interface ArticleMapper {
 
     void insertTags(@Param("articleId") Long articleId, @Param("tagIds") Set<Long> tagIds);
 
-    int publish(@Param("id") Long id, @Param("publishedAt") LocalDateTime publishedAt);
+    int publish(
+            @Param("id") Long id,
+            @Param("status") String status,
+            @Param("publishedAt") LocalDateTime publishedAt,
+            @Param("scheduledAt") LocalDateTime scheduledAt
+    );
+
+    int publishDueScheduled(@Param("now") LocalDateTime now);
 
     int withdraw(Long id);
 
